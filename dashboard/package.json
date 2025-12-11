@@ -1,0 +1,7 @@
+{
+  "name": "shadowguard-dashboard",
+  "version": "0.0.1",
+  "scripts": {
+    "start": "echo 'placeholder'"
+  }
+}
