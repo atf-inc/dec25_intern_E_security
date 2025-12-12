@@ -1,0 +1,14 @@
+{"ts": "2025-12-12T11:09:47.125344+00:00", "user_id": "charlie@company.com", "domain": "dropbox.com", "url": "/upload", "method": "POST", "upload_size_bytes": 15000000}
+{"ts": "2025-12-12T11:09:48.126195+00:00", "user_id": "esha@company.com", "domain": "google.com", "url": "/search?q=python", "method": "GET", "upload_size_bytes": 0}
+{"ts": "2025-12-12T11:09:49.128476+00:00", "user_id": "alice@company.com", "domain": "jira.company.com", "url": "/browse/PRJ-101", "method": "GET", "upload_size_bytes": 0}
+{"ts": "2025-12-12T11:09:50.129251+00:00", "user_id": "bob@company.com", "domain": "jira.company.com", "url": "/browse/PRJ-101", "method": "GET", "upload_size_bytes": 0}
+{"ts": "2025-12-12T11:09:51.130241+00:00", "user_id": "charlie@company.com", "domain": "jira.company.com", "url": "/browse/PRJ-101", "method": "GET", "upload_size_bytes": 0}
+{"ts": "2025-12-12T11:09:52.132749+00:00", "user_id": "esha@company.com", "domain": "github.com", "url": "/repos/example", "method": "GET", "upload_size_bytes": 0}
+{"ts": "2025-12-12T11:09:53.133937+00:00", "user_id": "charlie@company.com", "domain": "wetransfer.com", "url": "/send", "method": "POST", "upload_size_bytes": 20000000}
+{"ts": "2025-12-12T11:09:54.134631+00:00", "user_id": "charlie@company.com", "domain": "stackoverflow.com", "url": "/questions/123", "method": "GET", "upload_size_bytes": 0}
+{"ts": "2025-12-12T11:09:55.135546+00:00", "user_id": "alice@company.com", "domain": "jira.company.com", "url": "/browse/PRJ-101", "method": "GET", "upload_size_bytes": 0}
+{"ts": "2025-12-12T11:09:56.136513+00:00", "user_id": "charlie@company.com", "domain": "poe.com", "url": "/api/query", "method": "POST", "upload_size_bytes": 1000000}
+{"ts": "2025-12-12T11:09:57.137145+00:00", "user_id": "bob@company.com", "domain": "jira.company.com", "url": "/browse/PRJ-101", "method": "GET", "upload_size_bytes": 0}
+{"ts": "2025-12-12T11:09:58.138704+00:00", "user_id": "dinesh@company.com", "domain": "stackoverflow.com", "url": "/questions/123", "method": "GET", "upload_size_bytes": 0}
+{"ts": "2025-12-12T11:09:59.139406+00:00", "user_id": "charlie@company.com", "domain": "google.com", "url": "/search?q=python", "method": "GET", "upload_size_bytes": 0}
+{"ts": "2025-12-12T11:10:00.153788+00:00", "user_id": "bob@company.com", "domain": "google.com", "url": "/search?q=python", "method": "GET", "upload_size_bytes": 0}
