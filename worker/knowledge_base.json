@@ -1,0 +1,46 @@
+{
+    "safe_saas": [
+      "github.com",
+      "slack.com", 
+      "jira.atlassian.com",
+      "confluence.atlassian.com",
+      "teams.microsoft.com",
+      "zoom.us",
+      "google.com",
+      "stackoverflow.com"
+    ],
+    "ai_tools": [
+      "chatgpt.com",
+      "claude.ai", 
+      "bard.google.com",
+      "openai.com",
+      "anthropic.com",
+      "chat.openai.com",
+      "gemini.google.com",
+      "copilot.microsoft.com"
+    ],
+    "file_sharing": [
+      "dropbox.com",
+      "wetransfer.com",
+      "drive.google.com",
+      "onedrive.live.com",
+      "box.com",
+      "sendspace.com",
+      "filestack.com",
+      "mega.nz"
+    ],
+    "code_repos": [
+      "github.com",
+      "gitlab.com",
+      "bitbucket.org",
+      "sourceforge.net",
+      "codeberg.org"
+    ],
+    "suspicious_patterns": [
+      "temp-file-share.com",
+      "anonymous-chat.io",
+      "data-export-tool.net",
+      "quick-ai-writer.com",
+      "stealth-gpt.io"
+    ]
+  }

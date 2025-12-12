@@ -1,0 +1,90 @@
+version: "3.8"
+
+services:
+  # Redis - Message broker and state management
+  redis:
+    image: redis:7-alpine
+    container_name: shadowguard-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shadowguard-network
+
+  # Collector - FastAPI log ingestion service
+  collector:
+    build:
+      context: ./collector
+      dockerfile: Dockerfile
+    container_name: shadowguard-collector
+    restart: unless-stopped
+    ports:
+      - "${COLLECTOR_PORT:-8000}:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - shadowguard-network
+
+  # Worker - Multi-layer detection engine
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: shadowguard-worker
+    restart: unless-stopped
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    volumes:
+      - ./config:/app/config:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - shadowguard-network
+
+  # Dashboard - React frontend with backend API
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: shadowguard-dashboard
+    restart: unless-stopped
+    ports:
+      - "${DASHBOARD_PORT:-3000}:3000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - shadowguard-network
+
+# Networks
+networks:
+  shadowguard-network:
+    driver: bridge
+
+# Volumes
+volumes:
+  redis_data:
