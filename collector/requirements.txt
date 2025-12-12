@@ -1,2 +1,4 @@
-# Dependencies for this service
-# Will be added during implementation
+fastapi
+uvicorn
+redis
+pydantic
