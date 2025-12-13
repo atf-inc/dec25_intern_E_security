@@ -502,3 +502,120 @@ class GeneratorRunner:
             log = self.generator.generate_log()
             print(json.dumps(log, indent=2))
             print("-" * 60)
+
+
+# =============================================================================
+# CLI Interface
+# =============================================================================
+
+def parse_args() -> argparse.Namespace:
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Synthetic Log Generator for ShadowGuard AI",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    
+    parser.add_argument(
+        "-u", "--url",
+        default="http://localhost:8000/logs",
+        help="Collector service URL",
+    )
+    parser.add_argument(
+        "-n", "--num-logs",
+        type=int,
+        default=None,
+        help="Total number of logs to generate (default: unlimited)",
+    )
+    parser.add_argument(
+        "-b", "--batch-size",
+        type=int,
+        default=50,
+        help="Number of logs per batch",
+    )
+    parser.add_argument(
+        "-d", "--delay",
+        type=float,
+        default=1.0,
+        help="Delay between batches in seconds",
+    )
+    parser.add_argument(
+        "--users",
+        type=int,
+        default=10,
+        help="Number of simulated users",
+    )
+    parser.add_argument(
+        "--shadow-ratio",
+        type=float,
+        default=0.3,
+        help="Ratio of shadow IT events (0.0-1.0)",
+    )
+    parser.add_argument(
+        "--blacklist-ratio",
+        type=float,
+        default=0.1,
+        help="Ratio of blacklisted events (0.0-1.0)",
+    )
+    parser.add_argument(
+        "--sample",
+        type=int,
+        default=0,
+        help="Print N sample logs without sending",
+    )
+    parser.add_argument(
+        "--once",
+        action="store_true",
+        help="Generate logs once and exit",
+    )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Enable verbose logging",
+    )
+    
+    return parser.parse_args()
+
+
+def main() -> int:
+    """Main entry point."""
+    args = parse_args()
+    
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    
+    # Validate ratios
+    if args.shadow_ratio + args.blacklist_ratio > 1.0:
+        logger.error("shadow-ratio + blacklist-ratio must not exceed 1.0")
+        return 1
+    
+    # Create config
+    config = GeneratorConfig(
+        collector_url=args.url,
+        num_users=args.users,
+        logs_per_batch=args.batch_size,
+        batch_delay=args.delay,
+        shadow_it_ratio=args.shadow_ratio,
+        blacklist_ratio=args.blacklist_ratio,
+    )
+    
+    # Create runner
+    runner = GeneratorRunner(config)
+    
+    # Handle sample mode
+    if args.sample > 0:
+        runner.print_sample(args.sample)
+        return 0
+    
+    # Handle single run mode
+    if args.once:
+        count = args.num_logs or args.batch_size
+        runner.run_once(count)
+        return 0
+    
+    # Run continuous mode
+    runner.run_continuous(total_logs=args.num_logs)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
