@@ -4,7 +4,6 @@ import os
 import requests
 import time
 from typing import Dict, Any, List, Tuple
-from sklearn.metrics.pairwise import cosine_similarity
 
 # Load .env safely
 try:
@@ -15,7 +14,7 @@ except ImportError:
 
 
 class OpenRouterSimilarityDetector:
-    def _init_(
+    def __init__(
         self,
         api_key: str = None,
         cache_embeddings: bool = True,
@@ -75,7 +74,6 @@ class OpenRouterSimilarityDetector:
 
     def _load_knowledge_base(self):
         anchors_path = os.path.join("..", "config", "anchors.json")
-
         with open(anchors_path, "r") as f:
             self.categories = json.load(f)
 
@@ -152,7 +150,7 @@ class OpenRouterSimilarityDetector:
 
         self._save_embedding_cache()
 
-    # ---------------- OFFLINE ----------------
+    # ---------------- OFFLINE MODE ----------------
 
     def _setup_offline_embeddings(self):
         self.offline_keywords = {
@@ -170,32 +168,38 @@ class OpenRouterSimilarityDetector:
 
         return sims
 
-    # ---------------- SIMILARITY ----------------
+    # ---------------- NUMPY COSINE ----------------
+
+    def _cosine_similarity_numpy(self, a: np.ndarray, b: np.ndarray) -> float:
+        return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
     def _compute_similarities(self, query_embedding: np.ndarray) -> Dict[str, float]:
         sims = {}
-        q = query_embedding.reshape(1, -1)
 
         for cat, data in self.category_embeddings.items():
-            c = data["embedding"].reshape(1, -1)
-            sims[cat] = float(cosine_similarity(q, c)[0][0])
+            sims[cat] = self._cosine_similarity_numpy(
+                query_embedding,
+                data["embedding"]
+            )
 
         return sims
 
-    def _calculate_risk_score(self, sims: Dict[str, float]) -> Tuple[float, str]:
-        cat = max(sims, key=sims.get)
-        score = sims[cat]
+    # ---------------- RISK LOGIC ----------------
 
-        if cat == "generative_ai":
+    def _calculate_risk_score(self, sims: Dict[str, float]) -> Tuple[float, str]:
+        top_cat = max(sims, key=sims.get)
+        score = sims[top_cat]
+
+        if top_cat == "generative_ai":
             return 0.9, f"High-confidence AI service ({score:.2f})"
-        if cat == "anonymous_services":
+        if top_cat == "anonymous_services":
             return 0.6, f"Anonymous service ({score:.2f})"
-        if cat == "file_storage":
+        if top_cat == "file_storage":
             return 0.2, f"File storage ({score:.2f})"
 
         return 0.3, "Unknown"
 
-    # ---------------- PUBLIC ----------------
+    # ---------------- PUBLIC API ----------------
 
     def analyze(self, domain: str) -> Dict[str, Any]:
         if self.offline_mode:
@@ -219,27 +223,28 @@ class OpenRouterSimilarityDetector:
 # ---------------- TEST ----------------
 
 def test_detector():
-    print("🔍 Testing Risk Detector")
-    print("=" * 50)
-
     detector = OpenRouterSimilarityDetector()
 
     test_domains = [
-        "chat.openai.com",
-        "dropbox.com",
-        "protonmail.com",
         "unknown-site.net",
-        "claude.ai"
+        "claude.ai",
+        "large language model prompt"
     ]
 
     for domain in test_domains:
         result = detector.analyze(domain)
-        print(f"\n{domain}")
+
+        print("\n" + "=" * 50)
+        print(f"Domain        : {result['domain']}")
+        print(f"Top Category  : {result['top_category']}")
+        print(f"Risk Score   : {result['risk_score']}")
+        print("Similarities :")
+
         for cat, sim in result["similarities"].items():
-            print(f"  {cat}: {sim:.2f}")
-        print(f"→ Category: {result['top_category']} | Risk: {result['risk_score']}")
-        print(f"→ Reason: {result['explanation']}")
+            print(f"  - {cat:20s}: {sim:.2f}")
+
+        print(f"Explanation  : {result['explanation']}")
 
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     test_detector()
