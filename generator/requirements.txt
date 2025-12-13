@@ -1,2 +1,1 @@
-# Dependencies for this service
-# Will be added during implementation
+requests>=2.31.0
