@@ -19,23 +19,25 @@ def collect_log(log: Log):
 @router.get("/logs")
 def collect_log_get(
     user_id: str,
-    device_id: str,
-    event: str,
-    source: str,
-    timestamp: Annotated[datetime | None, Query()] = None
+    domain: str,
+    url: str,
+    method: str,
+    upload_size_bytes: int,
+    ts: Annotated[datetime | None, Query()] = None
 ):
     """
     Ingest logs via GET request (e.g. from proxy).
     """
-    if timestamp is None:
-        timestamp = datetime.utcnow()
+    if ts is None:
+        ts = datetime.utcnow()
     
     log = Log(
+        ts=ts,
         user_id=user_id,
-        device_id=device_id,
-        event=event,
-        source=source,
-        timestamp=timestamp
+        domain=domain,
+        url=url,
+        method=method,
+        upload_size_bytes=upload_size_bytes
     )
     
     redis_service.publish("events", log.dict())
