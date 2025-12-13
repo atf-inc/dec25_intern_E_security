@@ -1,12 +1,12 @@
 import redis
 import json
 import os
-import app.core.config as settings
+import collector.core.config as settings
 
 class RedisService:
     def __init__(self):
-        self.redis_host = os.getenv("REDIS_HOST", "localhost")
-        self.redis_port = int(os.getenv("REDIS_PORT", 6379))
+        self.redis_host = settings.settings.REDIS_HOST
+        self.redis_port = settings.settings.REDIS_PORT
         self.client = redis.Redis(host=self.redis_host, port=self.redis_port, decode_responses=True)
 
     def publish(self, channel: str, message: dict):
