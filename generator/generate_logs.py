@@ -351,3 +351,154 @@ class LogGenerator:
     def reset_stats(self) -> None:
         """Reset generation statistics."""
         self.stats = {"normal": 0, "shadow_it": 0, "blacklist": 0, "total": 0}
+
+
+# =============================================================================
+# Log Sender
+# =============================================================================
+
+class LogSender:
+    """Sends generated logs to the collector service."""
+    
+    def __init__(self, collector_url: str, timeout: int = 10):
+        self.collector_url = collector_url
+        self.timeout = timeout
+        self.session = requests.Session()
+        self.stats = {"success": 0, "failed": 0}
+    
+    def send_log(self, log: dict) -> bool:
+        """Send a single log to the collector."""
+        try:
+            response = self.session.post(
+                self.collector_url,
+                json=log,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            self.stats["success"] += 1
+            return True
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Failed to send log: {e}")
+            self.stats["failed"] += 1
+            return False
+    
+    def send_batch(self, logs: list[dict]) -> tuple[int, int]:
+        """Send a batch of logs. Returns (success_count, failed_count)."""
+        success = 0
+        failed = 0
+        
+        for log in logs:
+            if self.send_log(log):
+                success += 1
+            else:
+                failed += 1
+        
+        return success, failed
+    
+    def check_health(self) -> bool:
+        """Check if the collector service is healthy."""
+        try:
+            health_url = self.collector_url.replace("/logs", "/health")
+            response = self.session.get(health_url, timeout=5)
+            return response.status_code == 200
+        except requests.exceptions.RequestException:
+            return False
+    
+    def get_stats(self) -> dict:
+        """Get sending statistics."""
+        return self.stats.copy()
+
+
+# =============================================================================
+# Main Runner
+# =============================================================================
+
+class GeneratorRunner:
+    """Main runner for the log generator."""
+    
+    def __init__(self, config: GeneratorConfig):
+        self.config = config
+        self.generator = LogGenerator(config)
+        self.sender = LogSender(config.collector_url)
+        self.running = False
+    
+    def run_once(self, count: int) -> None:
+        """Generate and send a specific number of logs."""
+        logger.info(f"Generating {count} logs...")
+        
+        logs = self.generator.generate_batch(count)
+        success, failed = self.sender.send_batch(logs)
+        
+        gen_stats = self.generator.get_stats()
+        logger.info(
+            f"Generated: {gen_stats['total']} | "
+            f"Normal: {gen_stats['normal']} | "
+            f"Shadow IT: {gen_stats['shadow_it']} | "
+            f"Blacklist: {gen_stats['blacklist']}"
+        )
+        logger.info(f"Sent: {success} success, {failed} failed")
+    
+    def run_continuous(self, total_logs: Optional[int] = None) -> None:
+        """Run continuous log generation."""
+        self.running = True
+        logs_sent = 0
+        
+        logger.info("Starting continuous log generation...")
+        logger.info(f"Collector URL: {self.config.collector_url}")
+        logger.info(f"Batch size: {self.config.logs_per_batch}")
+        logger.info(f"Batch delay: {self.config.batch_delay}s")
+        
+        # Check collector health
+        if not self.sender.check_health():
+            logger.warning("Collector health check failed - proceeding anyway")
+        
+        try:
+            while self.running:
+                batch = self.generator.generate_batch(self.config.logs_per_batch)
+                success, failed = self.sender.send_batch(batch)
+                logs_sent += success
+                
+                logger.info(
+                    f"Batch sent: {success}/{len(batch)} | "
+                    f"Total: {logs_sent} | "
+                    f"Shadow IT: {self.generator.stats['shadow_it']} | "
+                    f"Blacklist: {self.generator.stats['blacklist']}"
+                )
+                
+                if total_logs and logs_sent >= total_logs:
+                    logger.info(f"Reached target of {total_logs} logs")
+                    break
+                
+                time.sleep(self.config.batch_delay)
+                
+        except KeyboardInterrupt:
+            logger.info("\nStopping log generation...")
+            self.running = False
+        
+        self._print_summary()
+    
+    def _print_summary(self) -> None:
+        """Print generation summary."""
+        gen_stats = self.generator.get_stats()
+        send_stats = self.sender.get_stats()
+        
+        logger.info("=" * 50)
+        logger.info("Generation Summary")
+        logger.info("=" * 50)
+        logger.info(f"Total generated: {gen_stats['total']}")
+        logger.info(f"  - Normal events: {gen_stats['normal']}")
+        logger.info(f"  - Shadow IT events: {gen_stats['shadow_it']}")
+        logger.info(f"  - Blacklist events: {gen_stats['blacklist']}")
+        logger.info(f"Successfully sent: {send_stats['success']}")
+        logger.info(f"Failed to send: {send_stats['failed']}")
+        logger.info("=" * 50)
+    
+    def print_sample(self, count: int = 5) -> None:
+        """Print sample logs without sending."""
+        logger.info(f"Generating {count} sample logs (not sending):")
+        print("-" * 60)
+        
+        for _ in range(count):
+            log = self.generator.generate_log()
+            print(json.dumps(log, indent=2))
+            print("-" * 60)
