@@ -15,23 +15,23 @@ except ImportError:
 
 
 class OpenRouterSimilarityDetector:
-    def _init_(self,
-        knowledge_base_path: str = "knowledge_base.json",
+    def _init_(
+        self,
         api_key: str = None,
         cache_embeddings: bool = True,
         max_retries: int = 3
     ):
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
-        self.knowledge_base_path = knowledge_base_path
         self.cache_embeddings = cache_embeddings
         self.max_retries = max_retries
 
-        self.categories = {}
-        self.category_embeddings = {}
+        self.categories: Dict[str, List[str]] = {}
+        self.category_embeddings: Dict[str, Dict[str, Any]] = {}
+
         self.embedding_cache_path = "embedding_cache.json"
         self.offline_mode = False
 
-        if cache_embeddings:
+        if self.cache_embeddings:
             self._load_embedding_cache()
 
         self._load_knowledge_base()
@@ -52,13 +52,14 @@ class OpenRouterSimilarityDetector:
                 for cat, data in cache.items():
                     data["embedding"] = np.array(data["embedding"])
                 self.category_embeddings = cache
-                print("Loaded cached embeddings")
+                print("✅ Loaded cached embeddings")
         except Exception:
-            print("No embedding cache found")
+            print("ℹ No embedding cache found")
 
     def _save_embedding_cache(self):
         if not self.cache_embeddings:
             return
+
         cache = {
             k: {
                 "embedding": v["embedding"].tolist(),
@@ -66,41 +67,19 @@ class OpenRouterSimilarityDetector:
             }
             for k, v in self.category_embeddings.items()
         }
+
         with open(self.embedding_cache_path, "w") as f:
             json.dump(cache, f)
 
     # ---------------- KNOWLEDGE BASE ----------------
 
     def _load_knowledge_base(self):
-        try:
-            with open(self.knowledge_base_path, "r") as f:
-                self.categories = json.load(f)
-        except FileNotFoundError:
-            self.categories = {
-                "generative_ai": [
-                    "chat.openai.com",
-                    "bard.google.com",
-                    "claude.ai",
-                    "perplexity.ai",
-                    "midjourney.com"
-                ],
-                "file_storage": [
-                    "dropbox.com",
-                    "drive.google.com",
-                    "onedrive.live.com",
-                    "box.com",
-                    "icloud.com"
-                ],
-                "anonymous_services": [
-                    "protonmail.com",
-                    "tutanota.com",
-                    "guerrillamail.com",
-                    "tempmail.com",
-                    "hide.me"
-                ]
-            }
-            with open(self.knowledge_base_path, "w") as f:
-                json.dump(self.categories, f, indent=2)
+        anchors_path = os.path.join("..", "config", "anchors.json")
+
+        with open(anchors_path, "r") as f:
+            self.categories = json.load(f)
+
+        print(f"✅ Loaded anchors from {anchors_path}")
 
     # ---------------- EMBEDDINGS ----------------
 
@@ -133,12 +112,19 @@ class OpenRouterSimilarityDetector:
                 return self._get_embedding(texts)
             except Exception:
                 time.sleep((i + 1) * 2)
+
         raise RuntimeError("Embedding failed after retries")
 
     def _domain_to_text(self, domain: str) -> str:
         text = domain.lower()
-        text = text.replace(".com", "").replace(".io", "").replace(".org", "").replace(".net", "")
-        text = text.replace("-", " ").replace(".", " ")
+        text = (
+            text.replace(".com", "")
+                .replace(".io", "")
+                .replace(".org", "")
+                .replace(".net", "")
+                .replace("-", " ")
+                .replace(".", " ")
+        )
 
         if any(x in text for x in ["chat", "gpt", "ai", "claude", "bard", "perplexity"]):
             text += " artificial intelligence generative ai assistant"
@@ -153,13 +139,17 @@ class OpenRouterSimilarityDetector:
         for category, domains in self.categories.items():
             if category in self.category_embeddings:
                 continue
+
             texts = [self._domain_to_text(d) for d in domains]
             emb = self._get_embedding_with_retry(texts)
+
             self.category_embeddings[category] = {
                 "embedding": np.mean(emb, axis=0),
                 "domains": domains
             }
-            print(f"Generated embedding for {category}")
+
+            print(f"✅ Generated embedding for {category}")
+
         self._save_embedding_cache()
 
     # ---------------- OFFLINE ----------------
@@ -174,8 +164,10 @@ class OpenRouterSimilarityDetector:
     def _compute_similarities_offline(self, domain: str) -> Dict[str, float]:
         sims = {}
         d = domain.lower()
+
         for cat, keys in self.offline_keywords.items():
             sims[cat] = 0.8 if any(k in d for k in keys) else 0.1
+
         return sims
 
     # ---------------- SIMILARITY ----------------
@@ -183,9 +175,11 @@ class OpenRouterSimilarityDetector:
     def _compute_similarities(self, query_embedding: np.ndarray) -> Dict[str, float]:
         sims = {}
         q = query_embedding.reshape(1, -1)
+
         for cat, data in self.category_embeddings.items():
             c = data["embedding"].reshape(1, -1)
             sims[cat] = float(cosine_similarity(q, c)[0][0])
+
         return sims
 
     def _calculate_risk_score(self, sims: Dict[str, float]) -> Tuple[float, str]:
@@ -212,6 +206,7 @@ class OpenRouterSimilarityDetector:
             sims = self._compute_similarities(emb)
 
         risk, reason = self._calculate_risk_score(sims)
+
         return {
             "domain": domain,
             "risk_score": risk,
