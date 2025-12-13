@@ -27,10 +27,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# =============================================================================
-# Configuration
-# =============================================================================
-
 @dataclass
 class GeneratorConfig:
     """Configuration for the log generator."""
@@ -43,10 +39,6 @@ class GeneratorConfig:
     blacklist_ratio: float = 0.1  # 10% blacklisted events
     config_dir: Path = Path(__file__).parent.parent / "config"
 
-
-# =============================================================================
-# Event Templates
-# =============================================================================
 
 # Normal/legitimate events that should NOT trigger alerts
 NORMAL_EVENTS = [
@@ -158,10 +150,6 @@ DEVICE_TYPES = [
     "THINKPAD",
 ]
 
-
-# =============================================================================
-# Data Generation Classes
-# =============================================================================
 
 class UserPool:
     """Manages simulated users and their devices."""
@@ -353,9 +341,8 @@ class LogGenerator:
         self.stats = {"normal": 0, "shadow_it": 0, "blacklist": 0, "total": 0}
 
 
-# =============================================================================
 # Log Sender
-# =============================================================================
+
 
 class LogSender:
     """Sends generated logs to the collector service."""
@@ -409,10 +396,7 @@ class LogSender:
         return self.stats.copy()
 
 
-# =============================================================================
 # Main Runner
-# =============================================================================
-
 class GeneratorRunner:
     """Main runner for the log generator."""
     
@@ -504,10 +488,8 @@ class GeneratorRunner:
             print("-" * 60)
 
 
-# =============================================================================
-# CLI Interface
-# =============================================================================
 
+# CLI Interface
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
