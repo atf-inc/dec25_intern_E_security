@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class GeneratorConfig:
     """Configuration for the log generator."""
-    collector_url: str = "http://localhost:8001/logs"
+    collector_url: str = "http://localhost:8000/logs"
     num_users: int = 10
     logs_per_batch: int = 50
     batch_delay: float = 1.0
@@ -387,7 +387,7 @@ def parse_args() -> argparse.Namespace:
    
     parser.add_argument(
         "-u", "--url",
-        default="http://localhost:8001/logs",
+        default="http://localhost:8000/logs",
         help="Collector service URL",
     )
     parser.add_argument(
