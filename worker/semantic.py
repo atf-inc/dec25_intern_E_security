@@ -228,7 +228,8 @@ def test_detector():
     test_domains = [
         "unknown-site.net",
         "claude.ai",
-        "large language model prompt"
+        "large language model prompt",
+        "onedrive.live.com"
     ]
 
     for domain in test_domains:
