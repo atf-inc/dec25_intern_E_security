@@ -1,10 +1,3 @@
-"""
-Synthetic Log Generator for ShadowGuard AI
-
-Generates realistic network traffic logs for testing Shadow IT detection.
-Produces both legitimate and suspicious traffic patterns.
-"""
-
 import argparse
 import json
 import logging
@@ -16,7 +9,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
+
 import requests
+
 
 # Configure logging
 logging.basicConfig(
@@ -25,6 +20,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
+
 
 
 @dataclass
@@ -39,6 +35,7 @@ class GeneratorConfig:
     config_dir: Path = Path(__file__).parent.parent / "config"
 
 
+
 NORMAL_DOMAINS = [
     "docs.company.com",
     "intranet.company.com",
@@ -49,6 +46,7 @@ NORMAL_DOMAINS = [
     "confluence.company.com",
     "sharepoint.company.com",
 ]
+
 
 NORMAL_URLS = [
     "/api/v1/documents",
@@ -61,6 +59,7 @@ NORMAL_URLS = [
     "/download",
 ]
 
+
 SHADOW_IT_URLS = [
     "/api/v1/upload",
     "/api/v1/chat",
@@ -71,6 +70,7 @@ SHADOW_IT_URLS = [
     "/api/completions",
 ]
 
+
 BLACKLIST_URLS = [
     "/api/v1/upload",
     "/api/v1/upload_context",
@@ -80,20 +80,22 @@ BLACKLIST_URLS = [
     "/api/v1/export",
 ]
 
+
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE"]
+
 
 
 class UserPool:
     """Manages simulated users."""
-    
+   
     def __init__(self, num_users: int):
         self.users: list[dict] = []
         self._generate_users(num_users)
-    
+   
     def _generate_users(self, num_users: int) -> None:
         """Generate a pool of users."""
         departments = ["Engineering", "Sales", "Marketing", "Finance", "HR", "IT", "Legal"]
-        
+       
         for i in range(num_users):
             user_id = f"U{str(i + 1).zfill(3)}"
             self.users.append({
@@ -101,25 +103,26 @@ class UserPool:
                 "department": random.choice(departments),
                 "risk_profile": random.choice(["low", "medium", "high"]),
             })
-    
+   
     def get_random_user(self) -> dict:
         return random.choice(self.users)
-    
+   
     def get_high_risk_user(self) -> dict:
         high_risk = [u for u in self.users if u["risk_profile"] == "high"]
         return random.choice(high_risk) if high_risk else self.get_random_user()
 
 
+
 class ConfigLoader:
     """Loads and manages configuration files."""
-    
+   
     def __init__(self, config_dir: Path):
         self.config_dir = config_dir
         self.anchors: dict = {}
         self.blacklist: list = []
         self.whitelist: list = []
         self._load_configs()
-    
+   
     def _load_configs(self) -> None:
         """Load all configuration files."""
         try:
@@ -128,19 +131,19 @@ class ConfigLoader:
                 with open(anchors_path) as f:
                     self.anchors = json.load(f)
                 logger.info(f"Loaded anchors: {list(self.anchors.keys())}")
-            
+           
             blacklist_path = self.config_dir / "blacklist.json"
             if blacklist_path.exists():
                 with open(blacklist_path) as f:
                     self.blacklist = json.load(f)
                 logger.info(f"Loaded {len(self.blacklist)} blacklisted services")
-            
+           
             whitelist_path = self.config_dir / "whitelist.json"
             if whitelist_path.exists():
                 with open(whitelist_path) as f:
                     self.whitelist = json.load(f)
                 logger.info(f"Loaded {len(self.whitelist)} whitelisted services")
-                
+               
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse config file: {e}")
             raise
@@ -149,15 +152,16 @@ class ConfigLoader:
             raise
 
 
+
 class LogGenerator:
     """Generates synthetic log events matching the collector schema."""
-    
+   
     def __init__(self, config: GeneratorConfig):
         self.config = config
         self.config_loader = ConfigLoader(config.config_dir)
         self.user_pool = UserPool(config.num_users)
         self.stats = {"normal": 0, "shadow_it": 0, "blacklist": 0, "total": 0}
-    
+   
     def generate_timestamp(self, max_age_hours: int = 24) -> str:
         """Generate a realistic timestamp within the specified time range."""
         now = datetime.now(timezone.utc)
@@ -167,13 +171,13 @@ class LogGenerator:
             seconds=random.randint(0, 59),
         )
         return (now - offset).isoformat()
-    
+   
     def generate_normal_event(self) -> dict:
         """Generate a normal/legitimate log event."""
         user = self.user_pool.get_random_user()
         self.stats["normal"] += 1
         self.stats["total"] += 1
-        
+       
         return {
             "ts": self.generate_timestamp(),
             "user_id": f"{user['user_id']}@company.com",
@@ -182,20 +186,20 @@ class LogGenerator:
             "method": random.choice(HTTP_METHODS),
             "upload_size_bytes": random.randint(1024, 10485760),
         }
-    
+   
     def generate_shadow_it_event(self) -> dict:
         """Generate a shadow IT log event based on anchors."""
         user = self.user_pool.get_high_risk_user() if random.random() < 0.6 else self.user_pool.get_random_user()
-        
+       
         category = random.choice(list(self.config_loader.anchors.keys()))
         services = self.config_loader.anchors[category]
         service = random.choice(services)
-        
+       
         domain = service if "." in service else service.lower().replace(" ", "-") + ".io"
-        
+       
         self.stats["shadow_it"] += 1
         self.stats["total"] += 1
-        
+       
         return {
             "ts": self.generate_timestamp(),
             "user_id": f"{user['user_id']}@company.com",
@@ -204,16 +208,16 @@ class LogGenerator:
             "method": random.choice(["POST", "PUT", "GET"]),
             "upload_size_bytes": random.randint(10240, 52428800),
         }
-    
+   
     def generate_blacklist_event(self) -> dict:
         """Generate a blacklisted service log event."""
         user = self.user_pool.get_high_risk_user()
         service = random.choice(self.config_loader.blacklist)
         domain = service if "." in service else service.lower().replace(" ", "-") + ".com"
-        
+       
         self.stats["blacklist"] += 1
         self.stats["total"] += 1
-        
+       
         return {
             "ts": self.generate_timestamp(),
             "user_id": f"{user['user_id']}@company.com",
@@ -222,40 +226,41 @@ class LogGenerator:
             "method": random.choice(["POST", "PUT"]),
             "upload_size_bytes": random.randint(52428800, 104857600),
         }
-    
+   
     def generate_log(self) -> dict:
         """Generate a single log event based on configured ratios."""
         rand = random.random()
-        
+       
         if rand < self.config.blacklist_ratio:
             return self.generate_blacklist_event()
         elif rand < (self.config.blacklist_ratio + self.config.shadow_it_ratio):
             return self.generate_shadow_it_event()
         else:
             return self.generate_normal_event()
-    
+   
     def generate_batch(self, count: int) -> list[dict]:
         """Generate a batch of log events."""
         return [self.generate_log() for _ in range(count)]
-    
+   
     def get_stats(self) -> dict:
         """Get generation statistics."""
         return self.stats.copy()
-    
+   
     def reset_stats(self) -> None:
         """Reset generation statistics."""
         self.stats = {"normal": 0, "shadow_it": 0, "blacklist": 0, "total": 0}
 
 
+
 class LogSender:
     """Sends generated logs to the collector service."""
-    
+   
     def __init__(self, collector_url: str, timeout: int = 10):
         self.collector_url = collector_url
         self.timeout = timeout
         self.session = requests.Session()
         self.stats = {"success": 0, "failed": 0}
-    
+   
     def send_log(self, log: dict) -> bool:
         """Send a single log to the collector."""
         try:
@@ -267,13 +272,13 @@ class LogSender:
             logger.warning(f"Failed to send log: {e}")
             self.stats["failed"] += 1
             return False
-    
+   
     def send_batch(self, logs: list[dict]) -> tuple[int, int]:
         """Send a batch of logs. Returns (success_count, failed_count)."""
         success = sum(1 for log in logs if self.send_log(log))
         failed = len(logs) - success
         return success, failed
-    
+   
     def check_health(self) -> bool:
         """Check if the collector service is healthy."""
         try:
@@ -282,27 +287,28 @@ class LogSender:
             return response.status_code == 200
         except requests.exceptions.RequestException:
             return False
-    
+   
     def get_stats(self) -> dict:
         return self.stats.copy()
 
 
+
 class GeneratorRunner:
     """Main runner for the log generator."""
-    
+   
     def __init__(self, config: GeneratorConfig):
         self.config = config
         self.generator = LogGenerator(config)
         self.sender = LogSender(config.collector_url)
         self.running = False
-    
+   
     def run_once(self, count: int) -> None:
         """Generate and send a specific number of logs."""
         logger.info(f"Generating {count} logs...")
-        
+       
         logs = self.generator.generate_batch(count)
         success, failed = self.sender.send_batch(logs)
-        
+       
         gen_stats = self.generator.get_stats()
         logger.info(
             f"Generated: {gen_stats['total']} | "
@@ -311,46 +317,46 @@ class GeneratorRunner:
             f"Blacklist: {gen_stats['blacklist']}"
         )
         logger.info(f"Sent: {success} success, {failed} failed")
-    
+   
     def run_continuous(self, total_logs: Optional[int] = None) -> None:
         """Run continuous log generation."""
         self.running = True
         logs_sent = 0
-        
+       
         logger.info("Starting continuous log generation...")
         logger.info(f"Collector URL: {self.config.collector_url}")
         logger.info(f"Batch size: {self.config.logs_per_batch}")
         logger.info(f"Batch delay: {self.config.batch_delay}s")
-        
+       
         # Check collector health
         if not self.sender.check_health():
             logger.warning("Collector health check failed - proceeding anyway")
-        
+       
         try:
             while self.running:
                 batch = self.generator.generate_batch(self.config.logs_per_batch)
                 success, failed = self.sender.send_batch(batch)
                 logs_sent += success
-                
+               
                 logger.info(
                     f"Batch sent: {success}/{len(batch)} | "
                     f"Total: {logs_sent} | "
                     f"Shadow IT: {self.generator.stats['shadow_it']} | "
                     f"Blacklist: {self.generator.stats['blacklist']}"
                 )
-                
+               
                 if total_logs and logs_sent >= total_logs:
                     logger.info(f"Reached target of {total_logs} logs")
                     break
-                
+               
                 time.sleep(self.config.batch_delay)
-                
+               
         except KeyboardInterrupt:
             logger.info("\nStopping log generation...")
     def _print_summary(self) -> None:
         gen_stats = self.generator.get_stats()
         send_stats = self.sender.get_stats()
-        
+       
         logger.info("=" * 50)
         logger.info("Generation Summary")
         logger.info("=" * 50)
@@ -361,7 +367,7 @@ class GeneratorRunner:
         logger.info(f"Successfully sent: {send_stats['success']}")
         logger.info(f"Failed to send: {send_stats['failed']}")
         logger.info("=" * 50)
-    
+   
     def print_sample(self, count: int = 5) -> None:
         logger.info(f"Generating {count} sample logs (not sending):")
         print("-" * 60)
@@ -371,13 +377,14 @@ class GeneratorRunner:
             print("-" * 60)
 
 
+
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description="Synthetic Log Generator for ShadowGuard AI",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    
+   
     parser.add_argument(
         "-u", "--url",
         default="http://localhost:8000/logs",
@@ -435,22 +442,23 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Enable verbose logging",
     )
-    
+   
     return parser.parse_args()
+
 
 
 def main() -> int:
     """Main entry point."""
     args = parse_args()
-    
+   
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
-    
+   
     # Validate ratios
     if args.shadow_ratio + args.blacklist_ratio > 1.0:
         logger.error("shadow-ratio + blacklist-ratio must not exceed 1.0")
         return 1
-    
+   
     # Create config
     config = GeneratorConfig(
         collector_url=args.url,
@@ -460,24 +468,25 @@ def main() -> int:
         shadow_it_ratio=args.shadow_ratio,
         blacklist_ratio=args.blacklist_ratio,
     )
-    
+   
     # Create runner
     runner = GeneratorRunner(config)
-    
+   
     # Handle sample mode
     if args.sample > 0:
         runner.print_sample(args.sample)
         return 0
-    
+   
     # Handle single run mode
     if args.once:
         count = args.num_logs or args.batch_size
         runner.run_once(count)
         return 0
-    
+   
     # Run continuous mode
     runner.run_continuous(total_logs=args.num_logs)
     return 0
+
 
 
 if __name__ == "__main__":
