@@ -469,21 +469,17 @@ def main() -> int:
         blacklist_ratio=args.blacklist_ratio,
     )
    
-    # Create runner
     runner = GeneratorRunner(config)
    
-    # Handle sample mode
     if args.sample > 0:
         runner.print_sample(args.sample)
         return 0
    
-    # Handle single run mode
     if args.once:
         count = args.num_logs or args.batch_size
         runner.run_once(count)
         return 0
    
-    # Run continuous mode
     runner.run_continuous(total_logs=args.num_logs)
     return 0
 
