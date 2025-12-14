@@ -32,7 +32,6 @@ class GeneratorConfig:
     """Configuration for the log generator."""
     collector_url: str = "http://localhost:8000/logs"
     num_users: int = 10
-    num_devices_per_user: int = 2
     logs_per_batch: int = 50
     batch_delay: float = 1.0
     shadow_it_ratio: float = 0.3  # 30% shadow IT events
@@ -40,141 +39,106 @@ class GeneratorConfig:
     config_dir: Path = Path(__file__).parent.parent / "config"
 
 
-# Normal/legitimate events that should NOT trigger alerts
-NORMAL_EVENTS = [
-    # Office applications
-    "Opened Microsoft Word",
-    "Opened Microsoft Excel",
-    "Opened Microsoft PowerPoint",
-    "Opened Microsoft Outlook",
-    "Opened Microsoft Teams",
-    "Joined Teams meeting",
-    "Sent email via Outlook",
-    "Edited document in Word",
-    "Created spreadsheet in Excel",
+# Normal/legitimate domains and URLs that should NOT trigger alerts
+NORMAL_TRAFFIC = [
+    # Office/productivity
+    {"domain": "outlook.office365.com", "url": "/api/v2.0/messages", "method": "GET"},
+    {"domain": "outlook.office365.com", "url": "/api/v2.0/messages", "method": "POST"},
+    {"domain": "teams.microsoft.com", "url": "/api/chats/messages", "method": "POST"},
+    {"domain": "teams.microsoft.com", "url": "/api/meetings/join", "method": "POST"},
+    {"domain": "sharepoint.com", "url": "/sites/documents/download", "method": "GET"},
+    {"domain": "sharepoint.com", "url": "/sites/documents/upload", "method": "POST"},
+    {"domain": "onedrive.live.com", "url": "/api/files/sync", "method": "POST"},
     
-    # Development tools
-    "Opened Visual Studio Code",
-    "Opened PyCharm",
-    "Pushed code to GitHub Enterprise",
-    "Pulled code from GitLab",
-    "Ran npm build",
-    "Executed pytest",
+    # Development
+    {"domain": "github.com", "url": "/api/v3/repos/pull", "method": "GET"},
+    {"domain": "github.com", "url": "/api/v3/repos/push", "method": "POST"},
+    {"domain": "gitlab.com", "url": "/api/v4/projects/merge_requests", "method": "GET"},
+    {"domain": "stackoverflow.com", "url": "/questions/search", "method": "GET"},
+    {"domain": "docs.microsoft.com", "url": "/en-us/azure/", "method": "GET"},
+    {"domain": "npmjs.com", "url": "/package/download", "method": "GET"},
+    {"domain": "pypi.org", "url": "/simple/package", "method": "GET"},
     
     # Internal systems
-    "Accessed company intranet",
-    "Logged into HR portal",
-    "Submitted expense report",
-    "Viewed payroll information",
-    "Accessed internal wiki",
-    "Used company VPN",
+    {"domain": "intranet.company.com", "url": "/portal/home", "method": "GET"},
+    {"domain": "hr.company.com", "url": "/employee/profile", "method": "GET"},
+    {"domain": "expense.company.com", "url": "/submit/report", "method": "POST"},
+    {"domain": "wiki.company.com", "url": "/pages/view", "method": "GET"},
+    {"domain": "vpn.company.com", "url": "/connect", "method": "POST"},
     
     # Standard browsing
-    "Visited stackoverflow.com",
-    "Visited github.com",
-    "Visited docs.microsoft.com",
-    "Visited company website",
-    "Searched on approved search engine",
-    
-    # File operations
-    "Saved file to network drive",
-    "Opened file from SharePoint",
-    "Downloaded attachment from email",
-    "Printed document",
-    "Scanned document",
+    {"domain": "google.com", "url": "/search", "method": "GET"},
+    {"domain": "linkedin.com", "url": "/feed", "method": "GET"},
+    {"domain": "news.ycombinator.com", "url": "/", "method": "GET"},
 ]
 
-# Event templates for shadow IT (anchors-based)
-SHADOW_IT_TEMPLATES = {
+# Shadow IT URL patterns by category
+SHADOW_IT_PATTERNS = {
     "generative_ai": [
-        "Visited {service}",
-        "Accessed {service}",
-        "Sent prompt to {service}",
-        "Used AI chatbot interface at {service}",
-        "Generated content using {service}",
-        "Asked AI to write an essay",
-        "Used large language model prompt",
-        "Generated images using AI service",
-        "Copied code from AI assistant at {service}",
-        "Uploaded document to AI service {service}",
+        {"url": "/api/v1/chat/completions", "method": "POST"},
+        {"url": "/api/v1/upload_context", "method": "POST"},
+        {"url": "/api/generate", "method": "POST"},
+        {"url": "/v1/images/generations", "method": "POST"},
+        {"url": "/api/v1/prompt", "method": "POST"},
+        {"url": "/chat/send", "method": "POST"},
+        {"url": "/api/completion", "method": "POST"},
+        {"url": "/v1/chat", "method": "POST"},
     ],
     "file_storage": [
-        "Uploaded file to {service}",
-        "Downloaded file from {service}",
-        "Synced folder with {service}",
-        "Shared link via {service}",
-        "Accessed {service}",
-        "Created shared folder on {service}",
-        "Moved company files to {service}",
-        "Backed up data to {service}",
+        {"url": "/api/v2/files/upload", "method": "POST"},
+        {"url": "/api/v2/files/download", "method": "GET"},
+        {"url": "/share/create", "method": "POST"},
+        {"url": "/api/sync", "method": "POST"},
+        {"url": "/upload", "method": "POST"},
+        {"url": "/files/shared", "method": "GET"},
     ],
     "anonymous_services": [
-        "Sent email via {service}",
-        "Created account on {service}",
-        "Accessed {service}",
-        "Used anonymous browsing via {service}",
-        "Registered with temporary email {service}",
-        "Enabled VPN connection to {service}",
+        {"url": "/api/send", "method": "POST"},
+        {"url": "/compose", "method": "POST"},
+        {"url": "/api/v1/connect", "method": "POST"},
+        {"url": "/tunnel/create", "method": "POST"},
+        {"url": "/proxy/request", "method": "POST"},
     ],
 }
 
-# Event templates for blacklisted services (high risk)
-BLACKLIST_TEMPLATES = [
-    "Uploaded file to {service}",
-    "Downloaded file from {service}",
-    "Visited {service}",
-    "Shared data via {service}",
-    "Transferred files using {service}",
-    "Accessed blocked site {service}",
-    "Attempted upload to {service}",
-    "Received file from {service}",
+# Blacklist URL patterns (high risk)
+BLACKLIST_PATTERNS = [
+    {"url": "/upload", "method": "POST"},
+    {"url": "/api/transfer", "method": "POST"},
+    {"url": "/share/file", "method": "POST"},
+    {"url": "/api/v1/send", "method": "POST"},
+    {"url": "/download", "method": "GET"},
+    {"url": "/receive", "method": "GET"},
 ]
 
-# Log sources
-LOG_SOURCES = [
-    "windows_agent",
-    "mac_agent",
-    "linux_agent",
-    "proxy",
-    "firewall",
-    "endpoint_dlp",
-    "network_monitor",
-]
-
-# Device types
-DEVICE_TYPES = [
-    "LAPTOP",
-    "DESKTOP",
-    "WORKSTATION",
-    "MACBOOK",
-    "THINKPAD",
-]
+# HTTP methods with their typical upload sizes
+METHOD_UPLOAD_SIZES = {
+    "GET": (0, 1024),  # GET requests typically have small/no body
+    "POST": (1024, 10485760),  # POST can have larger payloads (1KB to 10MB)
+    "PUT": (1024, 5242880),  # PUT similar to POST
+    "DELETE": (0, 512),  # DELETE usually small
+    "PATCH": (256, 102400),  # PATCH usually smaller updates
+}
 
 
 class UserPool:
-    """Manages simulated users and their devices."""
+    """Manages simulated users."""
     
-    def __init__(self, num_users: int, devices_per_user: int):
+    def __init__(self, num_users: int):
         self.users: list[dict] = []
-        self._generate_users(num_users, devices_per_user)
+        self._generate_users(num_users)
     
-    def _generate_users(self, num_users: int, devices_per_user: int) -> None:
-        """Generate a pool of users with associated devices."""
-        departments = ["Engineering", "Sales", "Marketing", "Finance", "HR", "IT", "Legal"]
+    def _generate_users(self, num_users: int) -> None:
+        """Generate a pool of users."""
+        departments = ["engineering", "sales", "marketing", "finance", "hr", "it", "legal"]
         
         for i in range(num_users):
-            user_id = f"U{str(i + 1).zfill(3)}"
-            devices = []
-            
-            for j in range(devices_per_user):
-                device_type = random.choice(DEVICE_TYPES)
-                device_id = f"{device_type}-{user_id}-{j + 1}"
-                devices.append(device_id)
+            dept = random.choice(departments)
+            user_id = f"user{str(i + 1).zfill(3)}@company.com"
             
             self.users.append({
                 "user_id": user_id,
-                "devices": devices,
-                "department": random.choice(departments),
+                "department": dept,
                 "risk_profile": random.choice(["low", "medium", "high"]),
             })
     
@@ -228,12 +192,12 @@ class ConfigLoader:
 
 
 class LogGenerator:
-    """Generates synthetic log events."""
+    """Generates synthetic log events matching the collector schema."""
     
     def __init__(self, config: GeneratorConfig):
         self.config = config
         self.config_loader = ConfigLoader(config.config_dir)
-        self.user_pool = UserPool(config.num_users, config.num_devices_per_user)
+        self.user_pool = UserPool(config.num_users)
         self.stats = {
             "normal": 0,
             "shadow_it": 0,
@@ -252,73 +216,74 @@ class LogGenerator:
         timestamp = now - offset
         return timestamp.isoformat()
     
+    def generate_upload_size(self, method: str) -> int:
+        """Generate realistic upload size based on HTTP method."""
+        min_size, max_size = METHOD_UPLOAD_SIZES.get(method, (0, 1024))
+        return random.randint(min_size, max_size)
+    
     def generate_normal_event(self) -> dict:
         """Generate a normal/legitimate log event."""
         user = self.user_pool.get_random_user()
-        device = random.choice(user["devices"])
+        traffic = random.choice(NORMAL_TRAFFIC)
         
         self.stats["normal"] += 1
         self.stats["total"] += 1
         
         return {
+            "ts": self.generate_timestamp(),
             "user_id": user["user_id"],
-            "device_id": device,
-            "event": random.choice(NORMAL_EVENTS),
-            "source": random.choice(LOG_SOURCES),
-            "timestamp": self.generate_timestamp(),
+            "domain": traffic["domain"],
+            "url": traffic["url"],
+            "method": traffic["method"],
+            "upload_size_bytes": self.generate_upload_size(traffic["method"]),
         }
     
     def generate_shadow_it_event(self) -> dict:
         """Generate a shadow IT log event based on anchors."""
         # High-risk users more likely to generate shadow IT
         user = self.user_pool.get_high_risk_user() if random.random() < 0.6 else self.user_pool.get_random_user()
-        device = random.choice(user["devices"])
         
         # Pick a random category from anchors
         category = random.choice(list(self.config_loader.anchors.keys()))
-        services = self.config_loader.anchors[category]
-        service = random.choice(services)
+        domains = self.config_loader.anchors[category]
+        domain = random.choice(domains)
         
-        # Pick a template for this category
-        templates = SHADOW_IT_TEMPLATES.get(category, ["Accessed {service}"])
-        template = random.choice(templates)
-        
-        # Generate the event
-        event = template.format(service=service)
+        # Pick a URL pattern for this category
+        patterns = SHADOW_IT_PATTERNS.get(category, [{"url": "/api/upload", "method": "POST"}])
+        pattern = random.choice(patterns)
         
         self.stats["shadow_it"] += 1
         self.stats["total"] += 1
         
         return {
+            "ts": self.generate_timestamp(),
             "user_id": user["user_id"],
-            "device_id": device,
-            "event": event,
-            "source": random.choice(LOG_SOURCES),
-            "timestamp": self.generate_timestamp(),
+            "domain": domain,
+            "url": pattern["url"],
+            "method": pattern["method"],
+            "upload_size_bytes": self.generate_upload_size(pattern["method"]),
         }
     
     def generate_blacklist_event(self) -> dict:
         """Generate a blacklisted service log event."""
         user = self.user_pool.get_high_risk_user()
-        device = random.choice(user["devices"])
         
-        service = random.choice(self.config_loader.blacklist)
-        template = random.choice(BLACKLIST_TEMPLATES)
-        event = template.format(service=service)
+        domain = random.choice(self.config_loader.blacklist)
+        pattern = random.choice(BLACKLIST_PATTERNS)
         
         self.stats["blacklist"] += 1
         self.stats["total"] += 1
         
         return {
+            "ts": self.generate_timestamp(),
             "user_id": user["user_id"],
-            "device_id": device,
-            "event": event,
-            "source": random.choice(LOG_SOURCES),
-            "timestamp": self.generate_timestamp(),
+            "domain": domain,
+            "url": pattern["url"],
+            "method": pattern["method"],
+            "upload_size_bytes": self.generate_upload_size(pattern["method"]),
         }
     
     def generate_log(self) -> dict:
-        """Generate a single log event based on configured ratios."""
         rand = random.random()
         
         if rand < self.config.blacklist_ratio:
@@ -329,19 +294,14 @@ class LogGenerator:
             return self.generate_normal_event()
     
     def generate_batch(self, count: int) -> list[dict]:
-        """Generate a batch of log events."""
         return [self.generate_log() for _ in range(count)]
     
     def get_stats(self) -> dict:
-        """Get generation statistics."""
         return self.stats.copy()
     
     def reset_stats(self) -> None:
         """Reset generation statistics."""
         self.stats = {"normal": 0, "shadow_it": 0, "blacklist": 0, "total": 0}
-
-
-# Log Sender
 
 
 class LogSender:
@@ -396,7 +356,6 @@ class LogSender:
         return self.stats.copy()
 
 
-# Main Runner
 class GeneratorRunner:
     """Main runner for the log generator."""
     
@@ -488,8 +447,6 @@ class GeneratorRunner:
             print("-" * 60)
 
 
-
-# CLI Interface
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
