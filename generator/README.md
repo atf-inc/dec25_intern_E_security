@@ -28,8 +28,6 @@ The generator loads configuration from `../config/`:
 
 ## Usage
 
-### Basic Usage
-
 Generate and send logs to the collector:
 
 ```bash
@@ -66,22 +64,7 @@ python3 generate_logs.py \
   --blacklist-ratio 0.1
 ```
 
-## Command-Line Options
-
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--url` | `-u` | `http://localhost:8000/logs` | Collector service URL |
-| `--num-logs` | `-n` | `unlimited` | Total number of logs to generate |
-| `--batch-size` | `-b` | `50` | Number of logs per batch |
-| `--delay` | `-d` | `1.0` | Delay between batches (seconds) |
-| `--users` | | `10` | Number of simulated users |
-| `--shadow-ratio` | | `0.3` | Ratio of shadow IT events (0.0-1.0) |
-| `--blacklist-ratio` | | `0.1` | Ratio of blacklisted events (0.0-1.0) |
-| `--sample` | | `0` | Print N sample logs without sending |
-| `--once` | | `false` | Generate logs once and exit |
-| `--verbose` | `-v` | `false` | Enable verbose logging |
-
-## Log Schema
+## Log Schema Format (followed by collector)
 
 Each generated log contains:
 
@@ -155,9 +138,3 @@ Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
-
-## Files
-
-- `generate_logs.py` - Main log generation script
-- `requirements.txt` - Python dependencies
-- `README.md` - This documentation
