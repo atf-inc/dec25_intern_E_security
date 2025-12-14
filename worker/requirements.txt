@@ -1,2 +1,3 @@
-# Dependencies for this service
-# Will be added during implementation
+numpy
+requests
+python-dotenv
