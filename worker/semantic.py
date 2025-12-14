@@ -2,161 +2,249 @@ import json
 import numpy as np
 import os
 import requests
+import time
 from typing import Dict, Any, List, Tuple
-from sklearn.metrics.pairwise import cosine_similarity
 
+# Load .env safely
 try:
     from dotenv import load_dotenv
     load_dotenv(dotenv_path="../.env")
 except ImportError:
     pass
 
+
 class OpenRouterSimilarityDetector:
-    def __init__(self, knowledge_base_path: str = "knowledge_base.json", api_key: str = None):
-        self.api_key = api_key or os.getenv('OPENROUTER_API_KEY')
-        self.knowledge_base_path = knowledge_base_path
-        self.category_embeddings = {}
-        self.categories = {}
-        
+    def __init__(
+        self,
+        api_key: str = None,
+        cache_embeddings: bool = True,
+        max_retries: int = 3
+    ):
+        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
+        self.cache_embeddings = cache_embeddings
+        self.max_retries = max_retries
+
+        self.categories: Dict[str, List[str]] = {}
+        self.category_embeddings: Dict[str, Dict[str, Any]] = {}
+
+        self.embedding_cache_path = "embedding_cache.json"
+        self.offline_mode = False
+
+        if self.cache_embeddings:
+            self._load_embedding_cache()
+
         self._load_knowledge_base()
-        self._generate_category_embeddings()
-    
-    def _load_knowledge_base(self):
+
         try:
-            with open(self.knowledge_base_path, 'r') as f:
-                self.categories = json.load(f)
-        except:
-            self.categories = {
-                "ai_tools": ["chatgpt.com", "openai.com", "claude.ai", "anthropic.com", "bard.google.com"],
-                "suspicious_patterns": ["temp-mail.org", "10minutemail.com", "bit.ly", "tinyurl.com"],
-                "safe_saas": ["github.com", "slack.com", "discord.com", "notion.so", "google.com"],
-                "file_sharing": ["drive.google.com", "dropbox.com", "box.com", "mega.nz"]
+            self._generate_category_embeddings()
+        except Exception as e:
+            print(f"⚠ API failed, switching to offline mode: {e}")
+            self.offline_mode = True
+            self._setup_offline_embeddings()
+
+    # ---------------- CACHE ----------------
+
+    def _load_embedding_cache(self):
+        try:
+            with open(self.embedding_cache_path, "r") as f:
+                cache = json.load(f)
+                for cat, data in cache.items():
+                    data["embedding"] = np.array(data["embedding"])
+                self.category_embeddings = cache
+                print("✅ Loaded cached embeddings")
+        except Exception:
+            print("ℹ No embedding cache found")
+
+    def _save_embedding_cache(self):
+        if not self.cache_embeddings:
+            return
+
+        cache = {
+            k: {
+                "embedding": v["embedding"].tolist(),
+                "domains": v["domains"]
             }
-    
+            for k, v in self.category_embeddings.items()
+        }
+
+        with open(self.embedding_cache_path, "w") as f:
+            json.dump(cache, f)
+
+    # ---------------- KNOWLEDGE BASE ----------------
+
+    def _load_knowledge_base(self):
+        anchors_path = os.path.join("..", "config", "anchors.json")
+        with open(anchors_path, "r") as f:
+            self.categories = json.load(f)
+
+        print(f"✅ Loaded anchors from {anchors_path}")
+
+    # ---------------- EMBEDDINGS ----------------
+
     def _get_embedding(self, texts: List[str]) -> np.ndarray:
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        data = {
-            "model": "thenlper/gte-base",
-            "input": texts,
-            "encoding_format": "float"
-        }
-        
+        if not self.api_key:
+            raise ValueError("OPENROUTER_API_KEY is missing")
+
         response = requests.post(
             "https://openrouter.ai/api/v1/embeddings",
-            headers=headers,
-            json=data,
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "thenlper/gte-base",
+                "input": texts
+            },
             timeout=30
         )
-        
+
         if response.status_code != 200:
-            raise Exception(f"API failed: {response.status_code}")
-        
-        result = response.json()
-        return np.array([item['embedding'] for item in result['data']])
-    
+            raise RuntimeError(response.text)
+
+        data = response.json()["data"]
+        return np.array([d["embedding"] for d in data])
+
+    def _get_embedding_with_retry(self, texts: List[str]) -> np.ndarray:
+        for i in range(self.max_retries):
+            try:
+                return self._get_embedding(texts)
+            except Exception:
+                time.sleep((i + 1) * 2)
+
+        raise RuntimeError("Embedding failed after retries")
+
     def _domain_to_text(self, domain: str) -> str:
-        clean_domain = domain.replace('.com', '').replace('.io', '').replace('.org', '').replace('.net', '')
-        text = clean_domain.replace('-', ' ').replace('.', ' ')
-        
-        if any(x in text.lower() for x in ['chat', 'gpt', 'ai']):
-            text += " artificial intelligence chat assistant"
-        elif any(x in text.lower() for x in ['github', 'git']):
-            text += " code repository development"
-        elif any(x in text.lower() for x in ['slack', 'teams']):
-            text += " team communication messaging"
-        elif any(x in text.lower() for x in ['drive', 'dropbox']):
-            text += " file sharing cloud storage"
-        
+        text = domain.lower()
+        text = (
+            text.replace(".com", "")
+                .replace(".io", "")
+                .replace(".org", "")
+                .replace(".net", "")
+                .replace("-", " ")
+                .replace(".", " ")
+        )
+
+        if any(x in text for x in ["chat", "gpt", "ai", "claude", "bard", "perplexity"]):
+            text += " artificial intelligence generative ai assistant"
+        elif any(x in text for x in ["drive", "dropbox", "box", "icloud", "onedrive"]):
+            text += " file storage cloud sharing"
+        elif any(x in text for x in ["proton", "tutanota", "temp", "hide"]):
+            text += " anonymous private secure service"
+
         return text
-    
+
     def _generate_category_embeddings(self):
-        for category_name, domains in self.categories.items():
-            if not domains:
+        for category, domains in self.categories.items():
+            if category in self.category_embeddings:
                 continue
-            
-            domain_texts = [self._domain_to_text(domain) for domain in domains]
-            embeddings = self._get_embedding(domain_texts)
-            avg_embedding = np.mean(embeddings, axis=0)
-            
-            self.category_embeddings[category_name] = {
-                'embedding': avg_embedding,
-                'domains': domains
+
+            texts = [self._domain_to_text(d) for d in domains]
+            emb = self._get_embedding_with_retry(texts)
+
+            self.category_embeddings[category] = {
+                "embedding": np.mean(emb, axis=0),
+                "domains": domains
             }
-    
+
+            print(f"✅ Generated embedding for {category}")
+
+        self._save_embedding_cache()
+
+    # ---------------- OFFLINE MODE ----------------
+
+    def _setup_offline_embeddings(self):
+        self.offline_keywords = {
+            "generative_ai": ["ai", "gpt", "chat", "claude", "bard"],
+            "file_storage": ["drive", "dropbox", "box", "icloud"],
+            "anonymous_services": ["proton", "tutanota", "temp", "hide"]
+        }
+
+    def _compute_similarities_offline(self, domain: str) -> Dict[str, float]:
+        sims = {}
+        d = domain.lower()
+
+        for cat, keys in self.offline_keywords.items():
+            sims[cat] = 0.8 if any(k in d for k in keys) else 0.1
+
+        return sims
+
+    # ---------------- NUMPY COSINE ----------------
+
+    def _cosine_similarity_numpy(self, a: np.ndarray, b: np.ndarray) -> float:
+        return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
     def _compute_similarities(self, query_embedding: np.ndarray) -> Dict[str, float]:
-        similarities = {}
-        query_reshaped = query_embedding.reshape(1, -1)
-        
-        for category_name, category_data in self.category_embeddings.items():
-            category_embedding = category_data['embedding'].reshape(1, -1)
-            similarity = cosine_similarity(query_reshaped, category_embedding)[0][0]
-            similarities[category_name] = float(similarity)
-        
-        return similarities
-    
-    def _calculate_risk_score(self, similarities: Dict[str, float]) -> Tuple[float, str]:
-        if not similarities:
-            return 0.5, "No matches"
-        
-        max_category = max(similarities, key=similarities.get)
-        max_similarity = similarities[max_category]
-        
-        if max_category == 'ai_tools' and max_similarity > 0.7:
-            risk_score = min(max_similarity * 1.2, 1.0)
-            explanation = f"AI tools match ({max_similarity:.2f})"
-        elif max_category == 'suspicious_patterns' and max_similarity > 0.6:
-            risk_score = min(max_similarity * 1.3, 1.0)
-            explanation = f"Suspicious pattern ({max_similarity:.2f})"
-        elif max_category == 'safe_saas' and max_similarity > 0.7:
-            risk_score = max(0.1, 1.0 - max_similarity)
-            explanation = f"Safe SaaS ({max_similarity:.2f})"
+        sims = {}
+
+        for cat, data in self.category_embeddings.items():
+            sims[cat] = self._cosine_similarity_numpy(
+                query_embedding,
+                data["embedding"]
+            )
+
+        return sims
+
+    # ---------------- RISK LOGIC ----------------
+
+    def _calculate_risk_score(self, sims: Dict[str, float]) -> Tuple[float, str]:
+        top_cat = max(sims, key=sims.get)
+        score = sims[top_cat]
+
+        if top_cat == "generative_ai":
+            return 0.9, f"High-confidence AI service ({score:.2f})"
+        if top_cat == "anonymous_services":
+            return 0.6, f"Anonymous service ({score:.2f})"
+        if top_cat == "file_storage":
+            return 0.2, f"File storage ({score:.2f})"
+
+        return 0.3, "Unknown"
+
+    # ---------------- PUBLIC API ----------------
+
+    def analyze(self, domain: str) -> Dict[str, Any]:
+        if self.offline_mode:
+            sims = self._compute_similarities_offline(domain)
         else:
-            risk_score = max_similarity * 0.7 if max_similarity > 0.3 else 0.6
-            explanation = f"{max_category} ({max_similarity:.2f})"
-        
-        return risk_score, explanation
-    
-    def analyze(self, domain: str, url: str = "") -> Dict[str, Any]:
-        try:
-            domain_text = self._domain_to_text(domain)
-            if url and any(keyword in url.lower() for keyword in ['upload', 'api', 'chat', 'export']):
-                domain_text += f" {url.replace('/', ' ')}"
-            
-            query_embedding = self._get_embedding([domain_text])[0]
-            similarities = self._compute_similarities(query_embedding)
-            risk_score, explanation = self._calculate_risk_score(similarities)
-            
-            return {
-                'risk_score': risk_score,
-                'explanation': explanation,
-                'similarities': similarities,
-                'top_category': max(similarities, key=similarities.get) if similarities else 'unknown'
-            }
-        except Exception as e:
-            return {
-                'risk_score': 0.5,
-                'explanation': f'Analysis failed: {str(e)}',
-                'similarities': {},
-                'top_category': 'error'
-            }
+            text = self._domain_to_text(domain)
+            emb = self._get_embedding_with_retry([text])[0]
+            sims = self._compute_similarities(emb)
+
+        risk, reason = self._calculate_risk_score(sims)
+
+        return {
+            "domain": domain,
+            "risk_score": risk,
+            "top_category": max(sims, key=sims.get),
+            "similarities": sims,
+            "explanation": reason
+        }
+
+
+# ---------------- TEST ----------------
 
 def test_detector():
     detector = OpenRouterSimilarityDetector()
-    
+
     test_domains = [
-        "github.com",
-        "super-gpt-clone.com", 
-        "chatgpt.com",
-        "unknown-service.net"
+        "unknown-site.net",
+        "claude.ai",
+        "large language model prompt"
     ]
-    
+
     for domain in test_domains:
         result = detector.analyze(domain)
-        print(f"{domain}: {result['risk_score']:.3f} - {result['explanation']}")
+
+        print("\n" + "=" * 50)
+        print(f"Domain        : {result['domain']}")
+        print(f"Top Category  : {result['top_category']}")
+        print(f"Risk Score   : {result['risk_score']}")
+        print("Similarities :")
+
+        for cat, sim in result["similarities"].items():
+            print(f"  - {cat:20s}: {sim:.2f}")
+
+        print(f"Explanation  : {result['explanation']}")
+
 
 if __name__ == "__main__":
     test_detector()
