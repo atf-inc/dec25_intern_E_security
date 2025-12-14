@@ -13,7 +13,7 @@ COPY . ./collector
 # Add /workspace to PYTHONPATH so python can find the 'collector' package
 ENV PYTHONPATH=/workspace
 
-EXPOSE 8001
+EXPOSE 8000
 
 # Run the app using the package path
-CMD ["uvicorn", "collector.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uvicorn", "collector.main:app", "--host", "0.0.0.0", "--port", "8000"]
