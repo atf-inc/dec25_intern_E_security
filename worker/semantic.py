@@ -252,8 +252,6 @@ def test_detector():
 
 
 
-# ---------------- REDIS CONSUMER ----------------
-
 def consume_from_collector():
     """Consume real-time events from collector via Redis"""
     import redis
@@ -267,19 +265,71 @@ def consume_from_collector():
     
     print(f"🔌 Connecting to Redis at {REDIS_HOST}:{REDIS_PORT}")
     
-    # Create Redis client
+    try:
+        # Create Redis client
         redis_client = redis.Redis(
             host=REDIS_HOST, 
             port=REDIS_PORT, 
             decode_responses=True
         )
-    redis_client.ping()
-    print("✅ Connected to Redis successfully")
-
-    pubsub = redis_client.pubsub()
-    pubsub.subscribe("events")
-
-    print("👂 Listening for events on 'events' channel...")
+        
+        # Test connection
+        redis_client.ping()
+        print("✅ Connected to Redis successfully")
+        
+        # Subscribe to events channel
+        pubsub = redis_client.pubsub()
+        pubsub.subscribe("events")
+        
+        print("👂 Listening for events on 'events' channel...")
+        print("=" * 60)
+        
+        # Process incoming events
+        for message in pubsub.listen():
+            if message["type"] == "message":
+                try:
+                    # Parse the event
+                    event_data = json.loads(message["data"])
+                    
+                    # Extract domain from the log event
+                    domain = event_data.get("domain")
+                    user_id = event_data.get("user_id")
+                    upload_size = event_data.get("upload_size_bytes", 0)
+                    
+                    if not domain:
+                        continue
+                    
+                    print(f"\n📨 New Event Received:")
+                    print(f"   User: {user_id}")
+                    print(f"   Domain: {domain}")
+                    print(f"   Upload Size: {upload_size} bytes")
+                    
+                    # Analyze the domain with semantic detector
+                    result = detector.analyze(domain)
+                    
+                    print("\n🔍 Semantic Analysis:")
+                    print(f"   Top Category  : {result['top_category']}")
+                    print(f"   Risk Score    : {result['risk_score']:.2f}")
+                    print(f"   Explanation   : {result['explanation']}")
+                    print("   Similarities  :")
+                    
+                    for cat, sim in result["similarities"].items():
+                        print(f"     - {cat:20s}: {sim:.2f}")
+                    
+                    print("=" * 60)
+                    
+                except json.JSONDecodeError as e:
+                    print(f"❌ Failed to parse event: {e}")
+                except Exception as e:
+                    print(f"❌ Error processing event: {e}")
+    
+    except redis.ConnectionError:
+        print("❌ Failed to connect to Redis")
+        print(f"   Make sure Redis is running at {REDIS_HOST}:{REDIS_PORT}")
+    except KeyboardInterrupt:
+        print("\n\n👋 Shutting down consumer...")
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
 
 
 
