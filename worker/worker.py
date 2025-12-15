@@ -1,5 +1,5 @@
 """
-ShadowGuard AI - Worker Core
+Worker (core of detection system)
 The brain of the detection system that orchestrates all analysis engines.
 """
 
@@ -25,7 +25,6 @@ PERFORMANCE_TARGET_MS = 500
 
 
 class ShadowGuardWorker:
-    """Core worker that orchestrates all detection engines."""
 
     def __init__(self):
         self._running = False
@@ -76,7 +75,6 @@ class ShadowGuardWorker:
         return False
 
     def _subscribe_to_channel(self) -> bool:
-        """Subscribe to the events channel."""
         try:
             self._pubsub = self._redis.pubsub()
             self._pubsub.subscribe(EVENTS_CHANNEL)
@@ -87,7 +85,6 @@ class ShadowGuardWorker:
             return False
 
     def _init_engines(self) -> bool:
-        """Initialize all detection engines."""
         try:
             print("[ENGINE] Initializing Semantic Engine...")
             self._semantic_engine = OpenRouterSimilarityDetector()
@@ -150,15 +147,13 @@ class ShadowGuardWorker:
         ts = log_data.get("ts", datetime.now().isoformat())
         upload_size = log_data.get("upload_size_bytes", 0)
 
+        # Alert: High-risk detection
         alert = f"""
-================================================================================
-                           SHADOWGUARD ALERT
-================================================================================
 Timestamp       : {ts}
 User            : {result['user_id']}
 Domain          : {result['domain']}
 Upload Size     : {upload_size:,} bytes
---------------------------------------------------------------------------------
+
 RISK ASSESSMENT
   Combined Score: {result['combined_risk_score']:.2f} {'[HIGH RISK]' if result['combined_risk_score'] > ALERT_THRESHOLD else ''}
   
@@ -171,9 +166,8 @@ RISK ASSESSMENT
     - Score     : {result['behavior']['score']:.2f}
     - First Visit: {result['behavior']['is_first_visit']}
     - Reason    : {result['behavior']['reason']}
---------------------------------------------------------------------------------
+
 Processing Time : {processing_time_ms:.1f}ms {'[OK]' if processing_time_ms < PERFORMANCE_TARGET_MS else '[SLOW]'}
-================================================================================
 """
         return alert
 
