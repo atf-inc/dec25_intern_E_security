@@ -44,7 +44,7 @@ const StatusBadge = ({ status }: { status: Alert['status'] }) => {
     );
 };
 
-const API_URL = 'http://localhost:8001/api/alerts';
+const API_URL = 'http://localhost:8000/api/alerts';
 
 export const Dashboard = () => {
     const [alerts, setAlerts] = useState<Alert[]>([]);
