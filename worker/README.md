@@ -56,3 +56,77 @@ Connects to Redis and processes real-time events from the collector.
     "upload_size_bytes": 5242880
 }
 ```
+
+
+**Analysis Output**:
+```
+📨 New Event Received:
+   User: alice@company.com
+   Domain: claude.ai
+   Upload Size: 5242880 bytes
+
+🔍 Semantic Analysis:
+   Top Category  : generative_ai
+   Risk Score    : 0.90
+   Explanation   : High-confidence AI service (0.94)
+   Similarities  :
+     - generative_ai       : 0.94
+     - file_storage        : 0.75
+     - anonymous_services  : 0.90
+```
+
+## Complete Pipeline Flow
+
+```
+Generator → Collector → Redis → Worker/Semantic
+            (HTTP)      (Pub/Sub)  (Subscriber)
+```
+
+### Running the Complete Pipeline
+
+1. **Start Redis & Collector**:
+```bash
+docker-compose up -d redis collector
+```
+
+2. **Start Semantic Worker** (in terminal 1):
+```bash
+python worker/semantic.py --live
+```
+
+3. **Generate Logs** (in terminal 2):
+```bash
+python generator/generate_logs.py --url http://localhost:8000/logs --num-logs 50
+```
+
+4. **Observe real-time analysis** in terminal 1
+
+### Stopping the Pipeline
+```bash
+# Ctrl+C in both terminals
+docker-compose down
+```
+
+## Environment Variables
+
+- `REDIS_HOST`: Redis server hostname (default: `localhost`)
+- `REDIS_PORT`: Redis server port (default: `6379`)
+- `OPENROUTER_API_KEY`: OpenRouter API key (optional, falls back to offline mode)
+
+## Risk Categories
+
+1. **Generative AI** (Risk: 0.9)
+   - ChatGPT, Claude, Bard, Midjourney
+   
+2. **File Storage** (Risk: 0.2)
+   - Dropbox, Google Drive, OneDrive, Box
+
+3. **Anonymous Services** (Risk: 0.6)
+   - ProtonMail, Tutanota, TempMail
+
+## Dependencies
+
+- `redis` - Redis client for pub/sub
+- `requests` - HTTP client for OpenRouter API
+- `numpy` - Vector similarity calculations
+- `python-dotenv` - Environment configuration
