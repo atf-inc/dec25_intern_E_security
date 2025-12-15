@@ -73,7 +73,11 @@ class OpenRouterSimilarityDetector:
     # ---------------- KNOWLEDGE BASE ----------------
 
     def _load_knowledge_base(self):
-        anchors_path = os.path.join("..", "config", "anchors.json")
+        # Get the absolute path to config/anchors.json relative to this script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        anchors_path = os.path.join(script_dir, "..", "config", "anchors.json")
+        anchors_path = os.path.normpath(anchors_path)  # Normalize the path
+        
         with open(anchors_path, "r") as f:
             self.categories = json.load(f)
 
