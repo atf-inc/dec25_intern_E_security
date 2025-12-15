@@ -187,3 +187,47 @@ class FusionEngine:
         }
         
         return result
+
+    def generate_alert(self, fused_result: Dict[str, Any]) -> str:
+        """
+        Generate human-readable alert message based on fused result.
+        
+        Args:
+            fused_result: Output from fuse()
+            
+        Returns:
+            Alert message string
+        """
+        risk = fused_result["risk_level"]
+        domain = fused_result["domain"]
+        user = fused_result["user_id"]
+        score = fused_result["final_risk_score"]
+        
+        if risk == "CRITICAL":
+            emoji = "🚨"
+            action = "BLOCK immediately"
+        elif risk == "HIGH":
+            emoji = "⚠️"
+            action = "ALERT security team"
+        elif risk == "MEDIUM":
+            emoji = "⚡"
+            action = "MONITOR closely"
+        elif risk == "LOW":
+            emoji = "ℹ️"
+            action = "LOG for review"
+        else:
+            emoji = "✅"
+            action = "ALLOW"
+        
+        alert = f"{emoji} {risk} RISK ({score:.2f}): User '{user}' → {domain}\n"
+        alert += f"   Action: {action}\n"
+        
+        if fused_result.get("override"):
+            alert += f"   Reason: {fused_result['override_reason']}\n"
+        else:
+            alert += f"   Behavior: {fused_result['behavior_analysis']['reason']}\n"
+            alert += f"   Semantic: {fused_result['semantic_analysis']['explanation']}\n"
+        
+        return alert
+
+    
