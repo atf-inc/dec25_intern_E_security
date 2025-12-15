@@ -5,4 +5,3 @@ The Dashboard service provides a web-based UI for monitoring Shadow IT detection
 **Files:**
 - `app.py` - Backend API for serving dashboard data (placeholder for React frontend)
 - `package.json` - Node.js configuration for React dashboard
-updated
