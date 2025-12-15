@@ -83,3 +83,25 @@ class FusionEngine:
             }
         
         return {"override": False}
+
+    def _calculate_risk_level(self, score: float) -> str:
+        """
+        Convert risk score to categorical level.
+        
+        Args:
+            score: Risk score (0-1)
+            
+        Returns:
+            Risk level category
+        """
+        if score >= 0.8:
+            return "CRITICAL"
+        elif score >= 0.6:
+            return "HIGH"
+        elif score >= 0.4:
+            return "MEDIUM"
+        elif score >= 0.2:
+            return "LOW"
+        else:
+            return "SAFE"
+        
