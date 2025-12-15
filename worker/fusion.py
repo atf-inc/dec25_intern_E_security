@@ -231,3 +231,133 @@ class FusionEngine:
         return alert
 
     
+
+# ---------------- TEST ----------------
+
+class MockBehaviorEngine:
+    """Mock behavior engine for testing when Redis is not available."""
+    
+    def __init__(self):
+        self.visited = set()
+    
+    def analyze(self, user_id: str, domain: str) -> dict:
+        """Simulate behavior analysis without Redis."""
+        key = f"{user_id}:{domain}"
+        is_first = key not in self.visited
+        self.visited.add(key)
+        
+        return {
+            "behavior_score": 0.5 if is_first else 0.0,
+            "is_first_visit": is_first,
+            "reason": "First time user has visited this domain" if is_first else "Domain found in user history"
+        }
+
+
+def test_fusion():
+    """
+    Test the fusion engine with sample data from both engines.
+    """
+    print("\n" + "="*60)
+    print("FUSION ENGINE TEST")
+    print("="*60 + "\n")
+    
+    # Import the other engines
+    try:
+        from behavior import BehaviorEngine
+        from semantic import OpenRouterSimilarityDetector
+    except ImportError:
+        print("⚠ Could not import behavior or semantic engines")
+        print("Make sure behavior.py and semantic.py are in the same directory")
+        return
+    
+    # Initialize all engines
+    print("Initializing engines...\n")
+    fusion = FusionEngine()
+    
+    # Try to connect to Redis, fall back to mock if not available
+    try:
+        behavior = BehaviorEngine(host="localhost")
+        print("✅ Behavior Engine connected to Redis")
+    except Exception as e:
+        print(f"⚠️  Redis not available, using mock behavior engine")
+        behavior = MockBehaviorEngine()
+    
+    semantic = OpenRouterSimilarityDetector()
+    
+    # Test scenarios
+    test_cases = [
+        {
+            "user_id": "user_001",
+            "domain": "claude.ai",
+            "description": "Known AI service, first visit"
+        },
+        {
+            "user_id": "user_002",
+            "domain": "wetransfer.com",
+            "description": "Blacklisted file transfer, repeat visit"
+        },
+        {
+            "user_id": "user_003",
+            "domain": "github.com",
+            "description": "Legitimate service, repeat visit"
+        },
+        {
+            "user_id": "user_004",
+            "domain": "protonmail.com",
+            "description": "Anonymous email service, first visit"
+        }
+    ]
+    
+    print("\n" + "="*60)
+    print("RUNNING TEST CASES")
+    print("="*60 + "\n")
+    
+    for i, test_case in enumerate(test_cases, 1):
+        user_id = test_case["user_id"]
+        domain = test_case["domain"]
+        
+        print(f"\n{'─'*60}")
+        print(f"Test Case {i}: {test_case['description']}")
+        print(f"{'─'*60}")
+        print(f"User: {user_id}")
+        print(f"Domain: {domain}\n")
+        
+        # Get behavior analysis
+        print("📊 Behavior Analysis:")
+        behavior_result = behavior.analyze(user_id, domain)
+        print(f"   Score: {behavior_result['behavior_score']:.2f}")
+        print(f"   First Visit: {behavior_result['is_first_visit']}")
+        print(f"   Reason: {behavior_result['reason']}\n")
+        
+        # Get semantic analysis
+        print("🧠 Semantic Analysis:")
+        semantic_result = semantic.analyze(domain)
+        print(f"   Risk Score: {semantic_result['risk_score']:.2f}")
+        print(f"   Top Category: {semantic_result['top_category']}")
+        print(f"   Explanation: {semantic_result['explanation']}\n")
+        
+        # Fuse the results
+        print("⚡ Fusion Result:")
+        fused = fusion.fuse(domain, user_id, behavior_result, semantic_result)
+        
+        print(f"   Final Score: {fused['final_risk_score']:.3f}")
+        print(f"   Risk Level: {fused['risk_level']}")
+        print(f"   Override: {fused['override']}")
+        
+        if fused['override']:
+            print(f"   Override Reason: {fused['override_reason']}")
+        else:
+            print(f"   Weighted Combination:")
+            print(f"     - Behavior ({fusion.behavior_weight:.1%}): {fused['behavior_score']:.3f}")
+            print(f"     - Semantic ({fusion.semantic_weight:.1%}): {fused['semantic_score']:.3f}")
+        
+        # Generate alert
+        print("\n" + fusion.generate_alert(fused))
+    
+    print("\n" + "="*60)
+    print("TEST COMPLETE")
+    print("="*60 + "\n")
+
+
+if __name__ == "__main__":
+    test_fusion()
