@@ -10,9 +10,7 @@ import sys
 import time
 from datetime import datetime
 from typing import Optional
-
 import redis
-
 from behavior import BehaviorEngine
 from semantic import OpenRouterSimilarityDetector
 
@@ -36,18 +34,15 @@ class ShadowGuardWorker:
         self._alert_count = 0
 
     def _setup_signal_handlers(self):
-        """Register handlers for graceful shutdown."""
         signal.signal(signal.SIGINT, self._handle_shutdown)
         signal.signal(signal.SIGTERM, self._handle_shutdown)
 
     def _handle_shutdown(self, signum, frame):
-        """Handle shutdown signals gracefully."""
         sig_name = "SIGINT" if signum == signal.SIGINT else "SIGTERM"
         print(f"\n[SHUTDOWN] Received {sig_name}, stopping worker...")
         self._running = False
 
     def _connect_redis(self) -> bool:
-        """Establish Redis connection with retry logic."""
         max_retries = 5
         retry_delay = 2
 
@@ -241,15 +236,12 @@ Processing Time : {processing_time_ms:.1f}ms {'[OK]' if processing_time_ms < PER
 
         self._setup_signal_handlers()
 
-        # Initialize Redis connection
         if not self._connect_redis():
             sys.exit(1)
 
-        # Initialize detection engines
         if not self._init_engines():
             sys.exit(1)
 
-        # Subscribe to events channel
         if not self._subscribe_to_channel():
             sys.exit(1)
 
@@ -261,7 +253,6 @@ Processing Time : {processing_time_ms:.1f}ms {'[OK]' if processing_time_ms < PER
 
         try:
             while self._running:
-                # Use get_message with timeout for responsive shutdown
                 message = self._pubsub.get_message(timeout=1.0)
                 if message:
                     self._handle_message(message)
@@ -272,11 +263,9 @@ Processing Time : {processing_time_ms:.1f}ms {'[OK]' if processing_time_ms < PER
         finally:
             self._cleanup()
 
-
 def main():
     worker = ShadowGuardWorker()
     worker.run()
-
 
 if __name__ == "__main__":
     main()
