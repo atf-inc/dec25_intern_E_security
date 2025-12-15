@@ -104,4 +104,86 @@ class FusionEngine:
             return "LOW"
         else:
             return "SAFE"
+    def fuse(
+        self,
+        domain: str,
+        user_id: str,
+        behavior_result: Dict[str, Any],
+        semantic_result: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Fuse behavior and semantic analysis results into final risk assessment.
         
+        Args:
+            domain: Domain being analyzed
+            user_id: User ID
+            behavior_result: Result from BehaviorEngine.analyze()
+            semantic_result: Result from OpenRouterSimilarityDetector.analyze()
+            
+        Returns:
+            Final fused risk assessment
+        """
+        # Check explicit lists first
+        override = self._check_explicit_lists(domain)
+        if override["override"]:
+            return {
+                "timestamp": datetime.utcnow().isoformat(),
+                "user_id": user_id,
+                "domain": domain,
+                "final_risk_score": override["final_risk"],
+                "risk_level": override["risk_level"],
+                "override": True,
+                "override_reason": override["reason"],
+                "behavior_score": None,
+                "semantic_score": None,
+                "fusion_method": "override"
+            }
+        
+        # Extract scores
+        behavior_score = behavior_result.get("behavior_score", 0.0)
+        semantic_score = semantic_result.get("risk_score", 0.0)
+        
+        # Apply weighted fusion
+        fused_score = (
+            self.behavior_weight * behavior_score +
+            self.semantic_weight * semantic_score
+        )
+        
+        # Determine risk level
+        risk_level = self._calculate_risk_level(fused_score)
+        
+        # Build comprehensive result
+        result = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "user_id": user_id,
+            "domain": domain,
+            
+            # Final assessment
+            "final_risk_score": round(fused_score, 3),
+            "risk_level": risk_level,
+            "override": False,
+            
+            # Component scores
+            "behavior_score": round(behavior_score, 3),
+            "semantic_score": round(semantic_score, 3),
+            
+            # Fusion details
+            "fusion_method": "weighted",
+            "weights": {
+                "behavior": self.behavior_weight,
+                "semantic": self.semantic_weight
+            },
+            
+            # Original analysis details
+            "behavior_analysis": {
+                "is_first_visit": behavior_result.get("is_first_visit", False),
+                "reason": behavior_result.get("reason", "")
+            },
+            "semantic_analysis": {
+                "top_category": semantic_result.get("top_category", "unknown"),
+                "similarities": semantic_result.get("similarities", {}),
+                "explanation": semantic_result.get("explanation", "")
+            }
+        }
+        
+        return result
