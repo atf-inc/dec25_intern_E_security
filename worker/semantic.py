@@ -250,5 +250,45 @@ def test_detector():
         print(f"Explanation  : {result['explanation']}")
 
 
+
+
+# ---------------- REDIS CONSUMER ----------------
+
+def consume_from_collector():
+    """Consume real-time events from collector via Redis"""
+    import redis
+    
+    # Initialize detector
+    detector = OpenRouterSimilarityDetector()
+    
+    # Redis connection settings (should match collector config)
+    REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+    
+    print(f"🔌 Connecting to Redis at {REDIS_HOST}:{REDIS_PORT}")
+    
+    # Create Redis client
+        redis_client = redis.Redis(
+            host=REDIS_HOST, 
+            port=REDIS_PORT, 
+            decode_responses=True
+        )
+    redis_client.ping()
+    print("✅ Connected to Redis successfully")
+
+    pubsub = redis_client.pubsub()
+    pubsub.subscribe("events")
+
+    print("👂 Listening for events on 'events' channel...")
+
+
+
+
+
+
+
+
+
+
 if __name__ == "__main__":
     test_detector()
