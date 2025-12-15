@@ -48,3 +48,38 @@ class FusionEngine:
         print(f"   - Semantic weight: {self.semantic_weight:.2f}")
         print(f"   - Blacklist: {len(self.blacklist)} domains")
         print(f"   - Whitelist: {len(self.whitelist)} domains")
+    
+    def _load_json(self, path: str) -> List[str]:
+        """Load JSON file safely."""
+        try:
+            with open(path, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠ Warning: Could not load {path}: {e}")
+            return []
+    
+    def _check_explicit_lists(self, domain: str) -> Dict[str, Any]:
+        """
+        Check if domain is in whitelist or blacklist.
+        
+        Returns override score if found, None otherwise.
+        """
+        # Whitelist takes precedence
+        if domain in self.whitelist:
+            return {
+                "override": True,
+                "final_risk": 0.0,
+                "risk_level": "SAFE",
+                "reason": "Domain is whitelisted"
+            }
+        
+        # Blacklist
+        if domain in self.blacklist:
+            return {
+                "override": True,
+                "final_risk": 1.0,
+                "risk_level": "CRITICAL",
+                "reason": "Domain is blacklisted"
+            }
+        
+        return {"override": False}
