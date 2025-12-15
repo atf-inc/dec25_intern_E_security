@@ -17,5 +17,5 @@ RUN pip install --no-cache-dir redis
 # Copy all worker files
 COPY . .
 
-# Run the behavior analysis monitor
-CMD ["python", "-u", "test_behavior_redis.py"]
+# Run the worker
+CMD ["python", "-u", "worker.py"]
