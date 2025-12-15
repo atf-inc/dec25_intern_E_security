@@ -73,7 +73,11 @@ class OpenRouterSimilarityDetector:
     # ---------------- KNOWLEDGE BASE ----------------
 
     def _load_knowledge_base(self):
-        anchors_path = os.path.join("..", "config", "anchors.json")
+        # Get the absolute path to config/anchors.json relative to this script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        anchors_path = os.path.join(script_dir, "..", "config", "anchors.json")
+        anchors_path = os.path.normpath(anchors_path)  # Normalize the path
+        
         with open(anchors_path, "r") as f:
             self.categories = json.load(f)
 
@@ -246,5 +250,104 @@ def test_detector():
         print(f"Explanation  : {result['explanation']}")
 
 
+
+
+def consume_from_collector():
+    """Consume real-time events from collector via Redis"""
+    import redis
+    
+    # Initialize detector
+    detector = OpenRouterSimilarityDetector()
+    
+    # Redis connection settings (should match collector config)
+    REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+    
+    print(f"🔌 Connecting to Redis at {REDIS_HOST}:{REDIS_PORT}")
+    
+    try:
+        # Create Redis client
+        redis_client = redis.Redis(
+            host=REDIS_HOST, 
+            port=REDIS_PORT, 
+            decode_responses=True
+        )
+        
+        # Test connection
+        redis_client.ping()
+        print("✅ Connected to Redis successfully")
+        
+        # Subscribe to events channel
+        pubsub = redis_client.pubsub()
+        pubsub.subscribe("events")
+        
+        print("👂 Listening for events on 'events' channel...")
+        print("=" * 60)
+        
+        # Process incoming events
+        for message in pubsub.listen():
+            if message["type"] == "message":
+                try:
+                    # Parse the event
+                    event_data = json.loads(message["data"])
+                    
+                    # Extract domain from the log event
+                    domain = event_data.get("domain")
+                    user_id = event_data.get("user_id")
+                    upload_size = event_data.get("upload_size_bytes", 0)
+                    
+                    if not domain:
+                        continue
+                    
+                    print(f"\n📨 New Event Received:")
+                    print(f"   User: {user_id}")
+                    print(f"   Domain: {domain}")
+                    print(f"   Upload Size: {upload_size} bytes")
+                    
+                    # Analyze the domain with semantic detector
+                    result = detector.analyze(domain)
+                    
+                    print("\n🔍 Semantic Analysis:")
+                    print(f"   Top Category  : {result['top_category']}")
+                    print(f"   Risk Score    : {result['risk_score']:.2f}")
+                    print(f"   Explanation   : {result['explanation']}")
+                    print("   Similarities  :")
+                    
+                    for cat, sim in result["similarities"].items():
+                        print(f"     - {cat:20s}: {sim:.2f}")
+                    
+                    print("=" * 60)
+                    
+                except json.JSONDecodeError as e:
+                    print(f"❌ Failed to parse event: {e}")
+                except Exception as e:
+                    print(f"❌ Error processing event: {e}")
+    
+    except redis.ConnectionError:
+        print("❌ Failed to connect to Redis")
+        print(f"   Make sure Redis is running at {REDIS_HOST}:{REDIS_PORT}")
+    except KeyboardInterrupt:
+        print("\n\n👋 Shutting down consumer...")
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
+
+
+
+
+
+
+
+
+
+
 if __name__ == "__main__":
-    test_detector()
+    import sys
+    
+    if len(sys.argv) > 1 and sys.argv[1] == "--live":
+        # Run in live mode (consume from Redis)
+        consume_from_collector()
+    else:
+        # Run in test mode (hardcoded domains)
+        print("ℹ Running in TEST MODE with hardcoded domains")
+        print("ℹ Use '--live' flag to consume from collector\n")
+        test_detector()
