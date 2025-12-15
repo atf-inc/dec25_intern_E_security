@@ -13,6 +13,7 @@ from typing import Optional
 import redis
 from behavior import BehaviorEngine
 from semantic import OpenRouterSimilarityDetector
+from fusion import FusionEngine
 
 # Configuration
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
@@ -30,6 +31,7 @@ class ShadowGuardWorker:
         self._pubsub: Optional[redis.client.PubSub] = None
         self._semantic_engine: Optional[OpenRouterSimilarityDetector] = None
         self._behavior_engine: Optional[BehaviorEngine] = None
+        self._fusion_engine: Optional[FusionEngine] = None
         self._processed_count = 0
         self._alert_count = 0
 
@@ -89,8 +91,9 @@ class ShadowGuardWorker:
             self._behavior_engine = BehaviorEngine(host=REDIS_HOST, port=REDIS_PORT)
             print("[ENGINE] Behavior Engine ready")
 
-            # Future: Initialize Rules Engine here
-            # self._rules_engine = RulesEngine()
+            print("[ENGINE] Initializing Fusion Engine...")
+            self._fusion_engine = FusionEngine()
+            print("[ENGINE] Fusion Engine ready")
 
             return True
         except Exception as e:
@@ -98,10 +101,6 @@ class ShadowGuardWorker:
             return False
 
     def _process_log(self, log_data: dict) -> dict:
-        """
-        Process a single log through all detection engines.
-        Returns combined analysis result.
-        """
         domain = log_data.get("domain", "")
         user_id = log_data.get("user_id", "")
 
@@ -111,68 +110,35 @@ class ShadowGuardWorker:
         # Behavior analysis
         behavior_result = self._behavior_engine.analyze(user_id, domain)
 
-        # Future: Rules engine analysis
-        # rules_result = self._rules_engine.analyze(domain)
-
-        # Combine scores - weighted average
-        # Semantic: 60%, Behavior: 40%
-        combined_score = (
-            semantic_result["risk_score"] * 0.6 +
-            behavior_result["behavior_score"] * 0.4
+        # Fuse results using FusionEngine
+        fused_result = self._fusion_engine.fuse(
+            domain, user_id, behavior_result, semantic_result
         )
 
-        return {
-            "domain": domain,
-            "user_id": user_id,
-            "combined_risk_score": round(combined_score, 3),
-            "semantic": {
-                "risk_score": semantic_result["risk_score"],
-                "category": semantic_result["top_category"],
-                "explanation": semantic_result["explanation"]
-            },
-            "behavior": {
-                "score": behavior_result["behavior_score"],
-                "is_first_visit": behavior_result["is_first_visit"],
-                "reason": behavior_result["reason"]
-            }
-        }
+        return fused_result
 
     def _format_alert(self, result: dict, log_data: dict, processing_time_ms: float) -> str:
-        """Format an alert message for high-risk detections."""
         ts = log_data.get("ts", datetime.now().isoformat())
         upload_size = log_data.get("upload_size_bytes", 0)
 
-        # Alert: High-risk detection
+        # Use FusionEngine's built-in alert generator
+        fusion_alert = self._fusion_engine.generate_alert(result)
+        
+        # Add additional context
         alert = f"""
 Timestamp       : {ts}
-User            : {result['user_id']}
-Domain          : {result['domain']}
 Upload Size     : {upload_size:,} bytes
-
-RISK ASSESSMENT
-  Combined Score: {result['combined_risk_score']:.2f} {'[HIGH RISK]' if result['combined_risk_score'] > ALERT_THRESHOLD else ''}
-  
-  Semantic Analysis:
-    - Score     : {result['semantic']['risk_score']:.2f}
-    - Category  : {result['semantic']['category']}
-    - Reason    : {result['semantic']['explanation']}
-  
-  Behavior Analysis:
-    - Score     : {result['behavior']['score']:.2f}
-    - First Visit: {result['behavior']['is_first_visit']}
-    - Reason    : {result['behavior']['reason']}
-
+{fusion_alert}
 Processing Time : {processing_time_ms:.1f}ms {'[OK]' if processing_time_ms < PERFORMANCE_TARGET_MS else '[SLOW]'}
 """
         return alert
 
     def _log_processed(self, result: dict, processing_time_ms: float):
-        """Log a processed event (non-alert)."""
         status = "OK" if processing_time_ms < PERFORMANCE_TARGET_MS else "SLOW"
         print(
             f"[PROCESSED] {result['domain']} | "
             f"user={result['user_id']} | "
-            f"risk={result['combined_risk_score']:.2f} | "
+            f"risk={result['final_risk_score']:.2f} ({result['risk_level']}) | "
             f"time={processing_time_ms:.1f}ms [{status}]"
         )
 
@@ -204,7 +170,7 @@ Processing Time : {processing_time_ms:.1f}ms {'[OK]' if processing_time_ms < PER
         self._processed_count += 1
 
         # Output based on risk level
-        if result["combined_risk_score"] > ALERT_THRESHOLD:
+        if result["final_risk_score"] > ALERT_THRESHOLD:
             self._alert_count += 1
             print(self._format_alert(result, log_data, processing_time_ms))
         else:
