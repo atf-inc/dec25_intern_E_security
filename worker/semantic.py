@@ -341,4 +341,13 @@ def consume_from_collector():
 
 
 if __name__ == "__main__":
-    test_detector()
+    import sys
+    
+    if len(sys.argv) > 1 and sys.argv[1] == "--live":
+        # Run in live mode (consume from Redis)
+        consume_from_collector()
+    else:
+        # Run in test mode (hardcoded domains)
+        print("ℹ Running in TEST MODE with hardcoded domains")
+        print("ℹ Use '--live' flag to consume from collector\n")
+        test_detector()
