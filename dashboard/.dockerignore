@@ -1,0 +1,52 @@
+# Node.js
+frontend/node_modules
+frontend/dist
+frontend/build
+frontend/.vite
+frontend/package-lock.json
+
+# Python
+backend/__pycache__
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/.pytest_cache
+backend/.mypy_cache
+backend/.ruff_cache
+backend/*.egg-info
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Environment and config
+.env
+.env.local
+.env.*.local
+*.log
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+*.md
+!package.json
+
+# Testing
+coverage
+.nyc_output
+*.test.js
+*.spec.js

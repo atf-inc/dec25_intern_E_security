@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Shield,
     AlertTriangle,
@@ -12,10 +12,19 @@ import {
     Filter
 } from 'lucide-react';
 
+interface Alert {
+    id: string;
+    risk_score: number;
+    user: string;
+    domain: string;
+    category: string;
+    timestamp: string;
+}
+
 export const Dashboard = () => {
-    const [alerts, setAlerts] = useState([]);
+    const [alerts, setAlerts] = useState<Alert[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('overview');
     const [stats, setStats] = useState([
         { label: 'Total Alerts', value: '0', trend: '+0%', icon: Bell, color: 'text-blue-400' },
@@ -35,9 +44,9 @@ export const Dashboard = () => {
 
                 // Update stats based on real data
                 if (data.alerts && data.alerts.length > 0) {
-                    const highRisk = data.alerts.filter(a => a.risk_score > 75).length;
-                    const uniqueUsers = new Set(data.alerts.map(a => a.user)).size;
-                    const avgRisk = (data.alerts.reduce((sum, a) => sum + a.risk_score, 0) / data.alerts.length / 100).toFixed(2);
+                    const highRisk = data.alerts.filter((a: Alert) => a.risk_score > 75).length;
+                    const uniqueUsers = new Set(data.alerts.map((a: Alert) => a.user)).size;
+                    const avgRisk = (data.alerts.reduce((sum: number, a: Alert) => sum + a.risk_score, 0) / data.alerts.length / 100).toFixed(2);
 
                     setStats([
                         { label: 'Total Alerts', value: data.alerts.length.toString(), trend: '+0%', icon: Bell, color: 'text-blue-400' },
@@ -48,7 +57,7 @@ export const Dashboard = () => {
                 }
             } catch (err) {
                 console.error('Error fetching alerts:', err);
-                setError(err.message);
+                setError(err instanceof Error ? err.message : 'Failed to fetch alerts');
             } finally {
                 setLoading(false);
             }
@@ -237,13 +246,13 @@ export const Dashboard = () => {
                                                 <tr key={alert.id} className="group hover:bg-slate-800/20 transition-colors">
                                                     <td className="py-4 pl-4">
                                                         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${riskScore > 0.8
-                                                                ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                                                                : riskScore > 0.4
-                                                                    ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-                                                                    : 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                            ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                                                            : riskScore > 0.4
+                                                                ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                                                : 'bg-green-500/10 text-green-400 border-green-500/20'
                                                             }`}>
                                                             <div className={`w-1.5 h-1.5 rounded-full ${riskScore > 0.8 ? 'bg-red-400 animate-pulse' :
-                                                                    riskScore > 0.4 ? 'bg-orange-400' : 'bg-green-400'
+                                                                riskScore > 0.4 ? 'bg-orange-400' : 'bg-green-400'
                                                                 }`}></div>
                                                             {status}
                                                         </div>
