@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Shield,
     AlertTriangle,
@@ -12,24 +12,52 @@ import {
     Filter
 } from 'lucide-react';
 
-// Mock Data
-const MOCK_ALERTS = [
-    { id: 1, domain: 'chatgpt.com', user: 'alice@company.com', risk: 0.95, category: 'Generative AI', time: '2 mins ago', status: 'High Risk' },
-    { id: 2, domain: 'dropbox.com', user: 'bob@company.com', risk: 0.45, category: 'File Storage', time: '15 mins ago', status: 'Medium Risk' },
-    { id: 3, domain: 'unknown-site.xyz', user: 'charlie@company.com', risk: 0.88, category: 'Unknown', time: '1 hour ago', status: 'High Risk' },
-    { id: 4, domain: 'wetransfer.com', user: 'david@company.com', risk: 0.30, category: 'File Storage', time: '2 hours ago', status: 'Low Risk' },
-];
-
-const MOCK_STATS = [
-    { label: 'Total Alerts', value: '1,248', trend: '+12%', icon: Bell, color: 'text-blue-400' },
-    { label: 'High Risk', value: '42', trend: '+5%', icon: AlertTriangle, color: 'text-red-400' },
-    { label: 'Active Users', value: '856', trend: '+3%', icon: Users, color: 'text-green-400' },
-    { label: 'Avg Risk Score', value: '0.45', trend: '-2%', icon: Activity, color: 'text-purple-400' },
-];
-
 export const Dashboard = () => {
-    const [alerts, setAlerts] = useState(MOCK_ALERTS);
+    const [alerts, setAlerts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
+    const [stats, setStats] = useState([
+        { label: 'Total Alerts', value: '0', trend: '+0%', icon: Bell, color: 'text-blue-400' },
+        { label: 'High Risk', value: '0', trend: '+0%', icon: AlertTriangle, color: 'text-red-400' },
+        { label: 'Active Users', value: '0', trend: '+0%', icon: Users, color: 'text-green-400' },
+        { label: 'Avg Risk Score', value: '0.00', trend: '0%', icon: Activity, color: 'text-purple-400' },
+    ]);
+
+    useEffect(() => {
+        const fetchAlerts = async () => {
+            try {
+                const response = await fetch('http://localhost:8000/api/alerts');
+                if (!response.ok) throw new Error('Failed to fetch alerts');
+                const data = await response.json();
+                setAlerts(data.alerts || []);
+                setError(null);
+
+                // Update stats based on real data
+                if (data.alerts && data.alerts.length > 0) {
+                    const highRisk = data.alerts.filter(a => a.risk_score > 75).length;
+                    const uniqueUsers = new Set(data.alerts.map(a => a.user)).size;
+                    const avgRisk = (data.alerts.reduce((sum, a) => sum + a.risk_score, 0) / data.alerts.length / 100).toFixed(2);
+
+                    setStats([
+                        { label: 'Total Alerts', value: data.alerts.length.toString(), trend: '+0%', icon: Bell, color: 'text-blue-400' },
+                        { label: 'High Risk', value: highRisk.toString(), trend: '+0%', icon: AlertTriangle, color: 'text-red-400' },
+                        { label: 'Active Users', value: uniqueUsers.toString(), trend: '+0%', icon: Users, color: 'text-green-400' },
+                        { label: 'Avg Risk Score', value: avgRisk, trend: '0%', icon: Activity, color: 'text-purple-400' },
+                    ]);
+                }
+            } catch (err) {
+                console.error('Error fetching alerts:', err);
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAlerts();
+        const interval = setInterval(fetchAlerts, 5000); // Refresh every 5 seconds
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-50 font-sans selection:bg-brand-500/30">
@@ -103,7 +131,9 @@ export const Dashboard = () => {
                     <div className="flex items-center gap-4">
                         <button className="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors">
                             <Bell className="w-5 h-5" />
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                            {alerts.length > 0 && (
+                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                            )}
                         </button>
                     </div>
                 </header>
@@ -130,7 +160,7 @@ export const Dashboard = () => {
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                        {MOCK_STATS.map((stat, i) => (
+                        {stats.map((stat, i) => (
                             <div key={i} className="glass-card p-5 rounded-2xl relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                                     <stat.icon className={`w-16 h-16 ${stat.color}`} />
@@ -156,8 +186,8 @@ export const Dashboard = () => {
                     <div className="glass-panel rounded-2xl p-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-lg font-semibold flex items-center gap-2">
-                                <Activity className="w-5 h-5 text-brand-400" />
-                                Recent Alerts
+                                < Activity className="w-5 h-5 text-brand-400" />
+                                Recent Alerts {loading && <span className="text-xs text-slate-500">(Loading...)</span>}
                             </h2>
                             <button className="text-sm text-brand-400 hover:text-brand-300 font-medium transition-colors">
                                 View All
@@ -177,42 +207,70 @@ export const Dashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800/30">
-                                    {alerts.map((alert) => (
-                                        <tr key={alert.id} className="group hover:bg-slate-800/20 transition-colors">
-                                            <td className="py-4 pl-4">
-                                                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${alert.risk > 0.8
-                                                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                                                        : alert.risk > 0.4
-                                                            ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-                                                            : 'bg-green-500/10 text-green-400 border-green-500/20'
-                                                    }`}>
-                                                    <div className={`w-1.5 h-1.5 rounded-full ${alert.risk > 0.8 ? 'bg-red-400 animate-pulse' :
-                                                            alert.risk > 0.4 ? 'bg-orange-400' : 'bg-green-400'
-                                                        }`}></div>
-                                                    {alert.status}
-                                                </div>
-                                            </td>
-                                            <td className="py-4 font-medium text-white flex items-center gap-2">
-                                                <Globe className="w-4 h-4 text-slate-500" />
-                                                {alert.domain}
-                                            </td>
-                                            <td className="py-4 text-slate-400 text-sm">{alert.user}</td>
-                                            <td className="py-4">
-                                                <span className="px-2 py-1 rounded bg-slate-800 text-xs text-slate-300 border border-slate-700">
-                                                    {alert.category}
-                                                </span>
-                                            </td>
-                                            <td className="py-4 text-slate-500 text-sm flex items-center gap-1.5">
-                                                <Clock className="w-3.5 h-3.5" />
-                                                {alert.time}
-                                            </td>
-                                            <td className="py-4 pr-4 text-right">
-                                                <button className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
-                                                    Investigate
-                                                </button>
+                                    {loading && alerts.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={6} className="py-12 text-center text-slate-400">
+                                                <Activity className="w-8 h-8 animate-spin mx-auto mb-2" />
+                                                Loading alerts...
                                             </td>
                                         </tr>
-                                    ))}
+                                    ) : error ? (
+                                        <tr>
+                                            <td colSpan={6} className="py-12 text-center text-red-400">
+                                                <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
+                                                Error: {error}
+                                            </td>
+                                        </tr>
+                                    ) : alerts.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={6} className="py-12 text-center text-slate-400">
+                                                No alerts yet. Monitoring active...
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        alerts.map((alert) => {
+                                            const riskScore = alert.risk_score / 100;
+                                            const status = riskScore > 0.8 ? 'High Risk' : riskScore > 0.4 ? 'Medium Risk' : 'Low Risk';
+                                            const timeAgo = new Date(alert.timestamp).toLocaleString();
+
+                                            return (
+                                                <tr key={alert.id} className="group hover:bg-slate-800/20 transition-colors">
+                                                    <td className="py-4 pl-4">
+                                                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${riskScore > 0.8
+                                                                ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                                                                : riskScore > 0.4
+                                                                    ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                                                    : 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                            }`}>
+                                                            <div className={`w-1.5 h-1.5 rounded-full ${riskScore > 0.8 ? 'bg-red-400 animate-pulse' :
+                                                                    riskScore > 0.4 ? 'bg-orange-400' : 'bg-green-400'
+                                                                }`}></div>
+                                                            {status}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 font-medium text-white flex items-center gap-2">
+                                                        <Globe className="w-4 h-4 text-slate-500" />
+                                                        {alert.domain}
+                                                    </td>
+                                                    <td className="py-4 text-slate-400 text-sm">{alert.user}</td>
+                                                    <td className="py-4">
+                                                        <span className="px-2 py-1 rounded bg-slate-800 text-xs text-slate-300 border border-slate-700">
+                                                            {alert.category}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-4 text-slate-500 text-sm flex items-center gap-1.5">
+                                                        <Clock className="w-3.5 h-3.5" />
+                                                        {timeAgo}
+                                                    </td>
+                                                    <td className="py-4 pr-4 text-right">
+                                                        <button className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
+                                                            Investigate
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
                                 </tbody>
                             </table>
                         </div>
