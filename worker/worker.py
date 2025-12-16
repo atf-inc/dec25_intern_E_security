@@ -8,6 +8,7 @@ import os
 import signal
 import sys
 import time
+import uuid
 from datetime import datetime
 from typing import Optional
 import redis
@@ -133,6 +134,45 @@ Processing Time : {processing_time_ms:.1f}ms {'[OK]' if processing_time_ms < PER
 """
         return alert
 
+    def _save_alert_to_redis(self, result: dict):
+        """Save alert to Redis for backend consumption."""
+        try:
+            # Handle override vs normal analysis
+            if result.get("override"):
+                # Blacklisted/Whitelisted domain - use override data
+                category = "Blacklisted" if result["final_risk_score"] > 0.5 else "Whitelisted"
+                ai_message = result.get("override_reason", "No explanation")
+            else:
+                # Normal analysis - use semantic data
+                category = result.get("semantic_analysis", {}).get("top_category", "unknown")
+                ai_message = result.get("semantic_analysis", {}).get("explanation", "No analysis available")
+            
+            # Format alert for frontend
+            alert = {
+                "id": str(uuid.uuid4()),
+                "risk_score": int(result["final_risk_score"] * 100),
+                "user": result["user_id"],
+                "department": "Unknown",
+                "domain": result["domain"],
+                "category": category,
+                "status": "new",
+                "timestamp": result["timestamp"],
+                "ai_message": ai_message
+            }
+            
+            # Push to Redis list
+            self._redis.lpush("alerts", json.dumps(alert))
+            
+            # Trim list to last 1000 alerts to prevent memory issues
+            self._redis.ltrim("alerts", 0, 999)
+            
+            print(f"[REDIS] Saved alert for {result['domain']} (risk: {result['final_risk_score']:.2f})")
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to save alert to Redis: {e}")
+            import traceback
+            traceback.print_exc()
+
     def _log_processed(self, result: dict, processing_time_ms: float):
         status = "OK" if processing_time_ms < PERFORMANCE_TARGET_MS else "SLOW"
         print(
@@ -173,6 +213,8 @@ Processing Time : {processing_time_ms:.1f}ms {'[OK]' if processing_time_ms < PER
         if result["final_risk_score"] > ALERT_THRESHOLD:
             self._alert_count += 1
             print(self._format_alert(result, log_data, processing_time_ms))
+            # Save alert to Redis for dashboard
+            self._save_alert_to_redis(result)
         else:
             self._log_processed(result, processing_time_ms)
 
