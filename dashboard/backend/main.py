@@ -3,8 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 import redis
 import json
 from .config import settings
+from collector.app.api.routes import routes_collect
 
 app = FastAPI(title="ShadowGuard Dashboard API")
+
+# Mount Collector Routes
+app.include_router(routes_collect.router)
 
 # CORS Middleware
 app.add_middleware(
