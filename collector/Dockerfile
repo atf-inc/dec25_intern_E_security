@@ -1,5 +1,8 @@
 FROM python:3.11-slim
 
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /workspace
 
 # Copy requirements first for better caching
