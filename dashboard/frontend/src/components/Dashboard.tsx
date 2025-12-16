@@ -1,235 +1,225 @@
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-    ShieldAlert,
+    Shield,
+    AlertTriangle,
     Activity,
-    Clock,
+    Users,
     Search,
-    Filter,
-    CheckCircle,
-    AlertTriangle
+    Bell,
+    Menu,
+    Globe,
+    Clock,
+    Filter
 } from 'lucide-react';
 
-export interface Alert {
-    id: string;
-    risk_score: number;
-    user: string;
-    department: string;
-    domain: string;
-    category: string;
-    status: 'new' | 'investigating' | 'resolved';
-    timestamp: string;
-    ai_message?: string;
-}
+// Mock Data
+const MOCK_ALERTS = [
+    { id: 1, domain: 'chatgpt.com', user: 'alice@company.com', risk: 0.95, category: 'Generative AI', time: '2 mins ago', status: 'High Risk' },
+    { id: 2, domain: 'dropbox.com', user: 'bob@company.com', risk: 0.45, category: 'File Storage', time: '15 mins ago', status: 'Medium Risk' },
+    { id: 3, domain: 'unknown-site.xyz', user: 'charlie@company.com', risk: 0.88, category: 'Unknown', time: '1 hour ago', status: 'High Risk' },
+    { id: 4, domain: 'wetransfer.com', user: 'david@company.com', risk: 0.30, category: 'File Storage', time: '2 hours ago', status: 'Low Risk' },
+];
 
-const StatusBadge = ({ status }: { status: Alert['status'] }) => {
-    const styles = {
-        new: "bg-red-100 text-red-800 border-red-200",
-        investigating: "bg-yellow-100 text-yellow-800 border-yellow-200",
-        resolved: "bg-green-100 text-green-800 border-green-200"
-    };
-
-    const icons = {
-        new: AlertTriangle,
-        investigating: Activity,
-        resolved: CheckCircle
-    };
-
-    const Icon = icons[status];
-
-    return (
-        <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[status]}`}>
-            <Icon size={12} />
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-        </span>
-    );
-};
-
-const API_URL = 'http://localhost:8000/api/alerts';
+const MOCK_STATS = [
+    { label: 'Total Alerts', value: '1,248', trend: '+12%', icon: Bell, color: 'text-blue-400' },
+    { label: 'High Risk', value: '42', trend: '+5%', icon: AlertTriangle, color: 'text-red-400' },
+    { label: 'Active Users', value: '856', trend: '+3%', icon: Users, color: 'text-green-400' },
+    { label: 'Avg Risk Score', value: '0.45', trend: '-2%', icon: Activity, color: 'text-purple-400' },
+];
 
 export const Dashboard = () => {
-    const [alerts, setAlerts] = useState<Alert[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const fetchAlerts = async () => {
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('Failed to fetch alerts');
-                const data = await response.json();
-                setAlerts(data.alerts || []);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Unknown error');
-                setAlerts([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchAlerts();
-        const interval = setInterval(fetchAlerts, 5000);
-        return () => clearInterval(interval);
-    }, []);
-
-    if (loading && alerts.length === 0) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="flex flex-col items-center gap-2">
-                    <Activity className="animate-spin text-indigo-600" size={32} />
-                    <p className="text-gray-500">Connecting to ShadowGuard Brain...</p>
-                </div>
-            </div>
-        );
-    }
+    const [alerts, setAlerts] = useState(MOCK_ALERTS);
+    const [activeTab, setActiveTab] = useState('overview');
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
-            <div className="mb-8">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                            <ShieldAlert className="text-indigo-600" size={32} />
-                            ShadowGuard Dashboard
-                        </h1>
-                        <p className="text-gray-500 mt-2">Real-time Shadow IT detection and risk analysis.</p>
+        <div className="min-h-screen bg-slate-950 text-slate-50 font-sans selection:bg-brand-500/30">
+
+            {/* Sidebar */}
+            <aside className="fixed left-0 top-0 h-full w-20 lg:w-64 bg-slate-900/50 backdrop-blur-xl border-r border-slate-800/50 hidden md:flex flex-col z-50">
+                <div className="p-6 flex items-center gap-3">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-brand-500 blur-lg opacity-40 rounded-full animate-pulse-glow"></div>
+                        <Shield className="w-8 h-8 text-brand-400 relative z-10" />
                     </div>
-                    {error && (
-                        <div className="flex items-center gap-2 bg-yellow-50 text-yellow-800 px-4 py-2 rounded-lg border border-yellow-200 text-sm">
-                            <AlertTriangle size={16} />
-                            <span>Backend Offline</span>
-                        </div>
-                    )}
+                    <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 hidden lg:block">
+                        ShadowGuard
+                    </span>
                 </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                {[
-                    {
-                        label: "Total Alerts",
-                        value: alerts.length,
-                        icon: ShieldAlert,
-                        color: "text-blue-600"
-                    },
-                    {
-                        label: "High Risk",
-                        value: alerts.filter(a => a.risk_score > 75).length,
-                        icon: AlertTriangle,
-                        color: "text-red-600"
-                    },
-                    {
-                        label: "Active Shadow IT",
-                        value: new Set(alerts.map(a => a.domain)).size,
-                        icon: Activity,
-                        color: "text-purple-600"
-                    },
-                    {
-                        label: "Avg Response",
-                        value: "Real-time",
-                        icon: Clock,
-                        color: "text-green-600"
-                    },
-                ].map((stat, idx) => (
-                    <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-                                <p className="text-2xl font-semibold text-gray-900 mt-1">{stat.value}</p>
-                            </div>
-                            <stat.icon className={`${stat.color} opacity-80`} size={24} />
+                <nav className="flex-1 px-4 py-8 space-y-2">
+                    {['Overview', 'Events', 'Analytics', 'Settings'].map((item) => (
+                        <button
+                            key={item}
+                            onClick={() => setActiveTab(item.toLowerCase())}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group
+                ${activeTab === item.toLowerCase()
+                                    ? 'bg-brand-500/10 text-brand-300 border border-brand-500/20 shadow-[0_0_15px_-5px_rgba(139,92,246,0.5)]'
+                                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                                }`}
+                        >
+                            <Activity className="w-5 h-5" />
+                            <span className="hidden lg:block font-medium">{item}</span>
+                        </button>
+                    ))}
+                </nav>
+
+                <div className="p-4 border-t border-slate-800/50">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/30 border border-slate-700/30">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-400 to-purple-600 flex items-center justify-center font-bold text-xs">
+                            AD
+                        </div>
+                        <div className="hidden lg:block">
+                            <p className="text-sm font-medium">Admin User</p>
+                            <p className="text-xs text-slate-500">View Profile</p>
                         </div>
                     </div>
-                ))}
-            </div>
+                </div>
+            </aside>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between gap-4">
-                    <h2 className="text-lg font-semibold text-gray-900">Recent Alerts</h2>
-                    <div className="flex gap-3">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            {/* Main Content */}
+            <main className="md:ml-20 lg:ml-64 min-h-screen relative overflow-hidden">
+                {/* Background Glow Effects */}
+                <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-brand-500/10 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+                <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2 pointer-events-none"></div>
+
+                {/* Header */}
+                <header className="sticky top-0 z-40 px-8 py-5 flex items-center justify-between backdrop-blur-md bg-slate-950/50 border-b border-slate-800/50">
+                    <div className="flex items-center gap-4 md:hidden">
+                        <Menu className="w-6 h-6 text-slate-400" />
+                        <Shield className="w-6 h-6 text-brand-500" />
+                    </div>
+
+                    <div className="hidden md:flex items-center gap-4 flex-1 max-w-xl">
+                        <div className="relative w-full group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-brand-400 transition-colors" />
                             <input
                                 type="text"
-                                placeholder="Search alerts..."
-                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                placeholder="Search events, users, or domains..."
+                                className="w-full bg-slate-900/50 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/50 transition-all placeholder:text-slate-600"
                             />
                         </div>
-                        <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            <Filter size={18} />
-                            Filter
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <button className="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors">
+                            <Bell className="w-5 h-5" />
+                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                         </button>
                     </div>
-                </div>
+                </header>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                            <tr>
-                                <th className="px-6 py-3 font-medium">Risk Score</th>
-                                <th className="px-6 py-3 font-medium">User / Dept</th>
-                                <th className="px-6 py-3 font-medium">Domain / Category</th>
-                                <th className="px-6 py-3 font-medium">Analysis</th>
-                                <th className="px-6 py-3 font-medium">Status</th>
-                                <th className="px-6 py-3 font-medium">Timestamp</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {alerts.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                                        No alerts found. Monitoring active...
-                                    </td>
-                                </tr>
-                            ) : (
-                                alerts.map((alert) => (
-                                    <tr key={alert.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`font-bold ${alert.risk_score > 75 ? 'text-red-600' : alert.risk_score > 50 ? 'text-yellow-600' : 'text-green-600'}`}>
-                                                    {alert.risk_score}
-                                                </span>
-                                                <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full rounded-full ${alert.risk_score > 75 ? 'bg-red-500' : alert.risk_score > 50 ? 'bg-yellow-500' : 'bg-green-500'}`}
-                                                        style={{ width: `${alert.risk_score}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium text-gray-900">{alert.user}</span>
-                                                <span className="text-xs text-gray-500">{alert.department}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium text-indigo-600">{alert.domain}</span>
-                                                <span className="text-xs text-gray-500">{alert.category}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 min-w-[300px]">
-                                            {alert.ai_message && (
-                                                <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3">
-                                                    <div className="flex items-start gap-2">
-                                                        <div className="min-w-[16px] mt-0.5">✨</div>
-                                                        <p className="text-xs text-indigo-800 leading-relaxed">{alert.ai_message}</p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {!alert.ai_message && <span className="text-xs text-gray-400 italic">No AI analysis available</span>}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <StatusBadge status={alert.status} />
-                                        </td>
-                                        <td className="px-6 py-4 text-xs text-gray-500">
-                                            {new Date(alert.timestamp).toLocaleString()}
-                                        </td>
+                <div className="p-8 max-w-7xl mx-auto space-y-8">
+
+                    {/* Welcome Section */}
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 animate-slide-up">
+                        <div>
+                            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 mb-2">
+                                Security Overview
+                            </h1>
+                            <p className="text-slate-400">Real-time monitoring of shadow IT activities</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <button className="px-4 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-sm font-medium hover:bg-slate-800 transition-colors flex items-center gap-2">
+                                <Filter className="w-4 h-4" /> Filter
+                            </button>
+                            <button className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-500 transition-all shadow-[0_0_20px_-5px_rgba(124,58,237,0.5)]">
+                                Download Report
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                        {MOCK_STATS.map((stat, i) => (
+                            <div key={i} className="glass-card p-5 rounded-2xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <stat.icon className={`w-16 h-16 ${stat.color}`} />
+                                </div>
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className={`p-2 rounded-lg bg-slate-900/50 border border-slate-800 ${stat.color}`}>
+                                        <stat.icon className="w-5 h-5" />
+                                    </div>
+                                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${stat.trend.startsWith('+') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                                        }`}>
+                                        {stat.trend}
+                                    </span>
+                                </div>
+                                <div className="relative z-10">
+                                    <h3 className="text-3xl font-bold text-white mb-1">{stat.value}</h3>
+                                    <p className="text-sm text-slate-400">{stat.label}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Recent Alerts Table */}
+                    <div className="glass-panel rounded-2xl p-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-lg font-semibold flex items-center gap-2">
+                                <Activity className="w-5 h-5 text-brand-400" />
+                                Recent Alerts
+                            </h2>
+                            <button className="text-sm text-brand-400 hover:text-brand-300 font-medium transition-colors">
+                                View All
+                            </button>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-slate-800/50 text-left">
+                                        <th className="pb-4 pl-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Risk Level</th>
+                                        <th className="pb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Domain</th>
+                                        <th className="pb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">User</th>
+                                        <th className="pb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Category</th>
+                                        <th className="pb-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Time</th>
+                                        <th className="pb-4 pr-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
                                     </tr>
-                                )))}
-                        </tbody>
-                    </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/30">
+                                    {alerts.map((alert) => (
+                                        <tr key={alert.id} className="group hover:bg-slate-800/20 transition-colors">
+                                            <td className="py-4 pl-4">
+                                                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${alert.risk > 0.8
+                                                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                                                        : alert.risk > 0.4
+                                                            ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                                            : 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                    }`}>
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${alert.risk > 0.8 ? 'bg-red-400 animate-pulse' :
+                                                            alert.risk > 0.4 ? 'bg-orange-400' : 'bg-green-400'
+                                                        }`}></div>
+                                                    {alert.status}
+                                                </div>
+                                            </td>
+                                            <td className="py-4 font-medium text-white flex items-center gap-2">
+                                                <Globe className="w-4 h-4 text-slate-500" />
+                                                {alert.domain}
+                                            </td>
+                                            <td className="py-4 text-slate-400 text-sm">{alert.user}</td>
+                                            <td className="py-4">
+                                                <span className="px-2 py-1 rounded bg-slate-800 text-xs text-slate-300 border border-slate-700">
+                                                    {alert.category}
+                                                </span>
+                                            </td>
+                                            <td className="py-4 text-slate-500 text-sm flex items-center gap-1.5">
+                                                <Clock className="w-3.5 h-3.5" />
+                                                {alert.time}
+                                            </td>
+                                            <td className="py-4 pr-4 text-right">
+                                                <button className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
+                                                    Investigate
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
-            </div>
+            </main>
         </div>
     );
 };
