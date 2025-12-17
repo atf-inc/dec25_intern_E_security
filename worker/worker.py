@@ -106,7 +106,15 @@ class ShadowGuardWorker:
         user_id = log_data.get("user_id", "")
 
         # Semantic analysis
-        semantic_result = self._semantic_engine.analyze(domain)
+        try:
+            semantic_result = self._semantic_engine.analyze(domain)
+        except Exception as e:
+            print(f"[WARN] Semantic analysis failed: {e}. Using fallback.")
+            semantic_result = {
+                "top_category": "unknown", 
+                "confidence": 0.0, 
+                "explanation": "Analysis failed"
+            }
 
         # Behavior analysis
         behavior_result = self._behavior_engine.analyze(user_id, domain)
