@@ -5,3 +5,5 @@ venv/
 .vscode/
 .DS_Store
 *.log
+embedding_cache.json
+worker/embedding_cache.json
