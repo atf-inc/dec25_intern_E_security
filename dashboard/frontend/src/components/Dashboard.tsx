@@ -36,7 +36,7 @@ export const Dashboard = () => {
     useEffect(() => {
         const fetchAlerts = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/alerts');
+                const response = await fetch('/api/alerts');
                 if (!response.ok) throw new Error('Failed to fetch alerts');
                 const data = await response.json();
                 setAlerts(data.alerts || []);
