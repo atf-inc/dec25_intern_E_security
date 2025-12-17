@@ -26,8 +26,6 @@ services:
       dockerfile: Dockerfile
     container_name: shadowguard-collector
     restart: unless-stopped
-    ports:
-      - "8000:8000"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -71,7 +69,6 @@ services:
     restart: unless-stopped
     ports:
       - "${DASHBOARD_PORT:-3000}:3000"
-      - "${API_GATEWAY_PORT:-8000}:8000"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
