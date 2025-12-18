@@ -209,9 +209,14 @@ class OpenRouterSimilarityDetector:
         if self.offline_mode:
             sims = self._compute_similarities_offline(domain)
         else:
-            text = self._domain_to_text(domain)
-            emb = self._get_embedding_with_retry([text])[0]
-            sims = self._compute_similarities(emb)
+            try:
+                text = self._domain_to_text(domain)
+                emb = self._get_embedding_with_retry([text])[0]
+                sims = self._compute_similarities(emb)
+            except Exception as e:
+                # Fall back to offline mode if embedding fails
+                print(f"⚠ Embedding failed for '{domain}', using offline mode: {e}")
+                sims = self._compute_similarities_offline(domain)
 
         risk, reason = self._calculate_risk_score(sims)
 
