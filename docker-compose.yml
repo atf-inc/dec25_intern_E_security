@@ -79,6 +79,21 @@ services:
     networks:
       - shadowguard-network
 
+  # Generator - Synthetic log generator for testing
+  generator:
+    build:
+      context: ./generator
+      dockerfile: Dockerfile
+    container_name: shadowguard-generator
+    restart: unless-stopped
+    volumes:
+      - ./config:/config:ro
+    depends_on:
+      collector:
+        condition: service_healthy
+    networks:
+      - shadowguard-network
+
 # Networks
 networks:
   shadowguard-network:
