@@ -26,7 +26,6 @@ services:
       dockerfile: Dockerfile
     container_name: shadowguard-collector
     restart: unless-stopped
-
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -70,12 +69,27 @@ services:
     restart: unless-stopped
     ports:
       - "${DASHBOARD_PORT:-3000}:3000"
-      - "${API_GATEWAY_PORT:-8000}:8000"
+      - "8001:8001"  # Expose backend API for local Vite dev
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
       redis:
+        condition: service_healthy
+    networks:
+      - shadowguard-network
+
+  # Generator - Synthetic log generator for testing
+  generator:
+    build:
+      context: ./generator
+      dockerfile: Dockerfile
+    container_name: shadowguard-generator
+    restart: unless-stopped
+    volumes:
+      - ./config:/config:ro
+    depends_on:
+      collector:
         condition: service_healthy
     networks:
       - shadowguard-network
