@@ -1,5 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Optional, List
+from datetime import datetime, timedelta
 import redis
 import json
 from config import settings
@@ -75,3 +77,21 @@ async def get_alerts(limit: int = 50, offset: int = 0):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching alerts: {str(e)}")
+
+
+# Helper function to get all alerts from Redis
+def _get_all_alerts() -> List[dict]:
+    """Fetch all alerts from Redis and parse them."""
+    if not redis_client:
+        return []
+    try:
+        raw_alerts = redis_client.lrange("alerts", 0, -1)
+        alerts = []
+        for alert_str in raw_alerts:
+            try:
+                alerts.append(json.loads(alert_str))
+            except json.JSONDecodeError:
+                continue
+        return alerts
+    except Exception:
+        return []
