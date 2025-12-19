@@ -1,488 +1,313 @@
-import argparse
-import json
-import logging
-import random
-import sys
-import time
-from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from typing import Optional
+#!/usr/bin/env python3
+"""
+ShadowGuard AI - Scenario-based Log Generator
 
+Generates specific scenario logs for demo and testing.
+
+Scenarios:
+  shadow_ai  - Triggers semantic detection (Risk > 0.7)
+  blacklist  - Triggers blacklist detection (Risk = 1.0)
+  whitelist  - Safe domain, no alert expected (Risk = 0.0)
+
+Usage:
+  python generate_logs.py --type shadow_ai
+  python generate_logs.py --type blacklist
+  python generate_logs.py --type whitelist
+  python generate_logs.py --type all
+"""
+
+import argparse
+import sys
+from datetime import datetime, timezone
 
 import requests
 
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
+# =============================================================================
+# SCENARIO DEFINITIONS
+# =============================================================================
+
+SCENARIOS = {
+    "shadow_ai": {
+        "name": "Shadow AI Upload",
+        "description": "User uploads sensitive data to unapproved AI service",
+        "expected": "Semantic Engine flags it (Risk > 0.7)",
+        "logs": [
+            {
+                "user_id": "U001@company.com",
+                "domain": "claude.ai",
+                "url": "/api/v1/upload_context",
+                "method": "POST",
+                "upload_size_bytes": 15_000_000,
+            },
+            {
+                "user_id": "U002@company.com",
+                "domain": "chat.openai.com",
+                "url": "/api/completions",
+                "method": "POST",
+                "upload_size_bytes": 8_500_000,
+            },
+            {
+                "user_id": "U003@company.com",
+                "domain": "unapproved-ai-tool.io",
+                "url": "/api/v1/generate",
+                "method": "POST",
+                "upload_size_bytes": 12_000_000,
+            },
+        ],
+    },
+    "blacklist": {
+        "name": "Data Exfiltration (Blacklisted)",
+        "description": "User uploads data to blacklisted file-sharing service",
+        "expected": "Blacklist Engine flags instantly (Risk = 1.0)",
+        "logs": [
+            {
+                "user_id": "U004@company.com",
+                "domain": "rapidgator.net",
+                "url": "/api/v1/upload",
+                "method": "POST",
+                "upload_size_bytes": 52_428_800,
+            },
+            {
+                "user_id": "U005@company.com",
+                "domain": "anonfiles.com",
+                "url": "/upload_file",
+                "method": "POST",
+                "upload_size_bytes": 104_857_600,
+            },
+            {
+                "user_id": "U006@company.com",
+                "domain": "wetransfer.com",
+                "url": "/api/v1/transfer",
+                "method": "POST",
+                "upload_size_bytes": 75_000_000,
+            },
+        ],
+    },
+    "whitelist": {
+        "name": "False Positive Avoided (Whitelisted)",
+        "description": "User accesses approved company domain",
+        "expected": "Whitelist overrides detection (Risk = 0.0, NO alert)",
+        "logs": [
+            {
+                "user_id": "U007@company.com",
+                "domain": "docs.company.com",
+                "url": "/api/v1/documents",
+                "method": "POST",
+                "upload_size_bytes": 5_000_000,
+            },
+            {
+                "user_id": "U008@company.com",
+                "domain": "drive.company.com",
+                "url": "/api/v1/upload",
+                "method": "POST",
+                "upload_size_bytes": 10_000_000,
+            },
+        ],
+    },
+}
 
 
-
-@dataclass
-class GeneratorConfig:
-    """Configuration for the log generator."""
-    collector_url: str = "http://localhost:8000/logs"
-    num_users: int = 10
-    logs_per_batch: int = 50
-    batch_delay: float = 1.0
-    shadow_it_ratio: float = 0.3
-    blacklist_ratio: float = 0.1
-    config_dir: Path = Path(__file__).parent.parent / "config"
-
-
-
-NORMAL_DOMAINS = [
-    "docs.company.com",
-    "intranet.company.com",
-    "hr.company.com",
-    "github.company.com",
-    "gitlab.company.com",
-    "jira.company.com",
-    "confluence.company.com",
-    "sharepoint.company.com",
-]
-
-
-NORMAL_URLS = [
-    "/api/v1/documents",
-    "/api/v1/reports",
-    "/api/v1/files",
-    "/dashboard",
-    "/projects",
-    "/wiki",
-    "/upload",
-    "/download",
-]
-
-
-SHADOW_IT_URLS = [
-    "/api/v1/upload",
-    "/api/v1/chat",
-    "/api/v1/generate",
-    "/upload_context",
-    "/share",
-    "/sync",
-    "/api/completions",
-]
-
-
-BLACKLIST_URLS = [
-    "/api/v1/upload",
-    "/api/v1/upload_context",
-    "/upload_file",
-    "/share_data",
-    "/transfer",
-    "/api/v1/export",
-]
-
-
-HTTP_METHODS = ["GET", "POST", "PUT", "DELETE"]
-
-
-
-class UserPool:
-    """Manages simulated users."""
-   
-    def __init__(self, num_users: int):
-        self.users: list[dict] = []
-        self._generate_users(num_users)
-   
-    def _generate_users(self, num_users: int) -> None:
-        """Generate a pool of users."""
-        departments = ["Engineering", "Sales", "Marketing", "Finance", "HR", "IT", "Legal"]
-       
-        for i in range(num_users):
-            user_id = f"U{str(i + 1).zfill(3)}"
-            self.users.append({
-                "user_id": user_id,
-                "department": random.choice(departments),
-                "risk_profile": random.choice(["low", "medium", "high"]),
-            })
-   
-    def get_random_user(self) -> dict:
-        return random.choice(self.users)
-   
-    def get_high_risk_user(self) -> dict:
-        high_risk = [u for u in self.users if u["risk_profile"] == "high"]
-        return random.choice(high_risk) if high_risk else self.get_random_user()
-
-
-
-class ConfigLoader:
-    """Loads and manages configuration files."""
-   
-    def __init__(self, config_dir: Path):
-        self.config_dir = config_dir
-        self.anchors: dict = {}
-        self.blacklist: list = []
-        self.whitelist: list = []
-        self._load_configs()
-   
-    def _load_configs(self) -> None:
-        """Load all configuration files."""
-        try:
-            anchors_path = self.config_dir / "anchors.json"
-            if anchors_path.exists():
-                with open(anchors_path) as f:
-                    self.anchors = json.load(f)
-                logger.info(f"Loaded anchors: {list(self.anchors.keys())}")
-           
-            blacklist_path = self.config_dir / "blacklist.json"
-            if blacklist_path.exists():
-                with open(blacklist_path) as f:
-                    self.blacklist = json.load(f)
-                logger.info(f"Loaded {len(self.blacklist)} blacklisted services")
-           
-            whitelist_path = self.config_dir / "whitelist.json"
-            if whitelist_path.exists():
-                with open(whitelist_path) as f:
-                    self.whitelist = json.load(f)
-                logger.info(f"Loaded {len(self.whitelist)} whitelisted services")
-               
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse config file: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"Failed to load configs: {e}")
-            raise
-
-
-
-class LogGenerator:
-    """Generates synthetic log events matching the collector schema."""
-   
-    def __init__(self, config: GeneratorConfig):
-        self.config = config
-        self.config_loader = ConfigLoader(config.config_dir)
-        self.user_pool = UserPool(config.num_users)
-        self.stats = {"normal": 0, "shadow_it": 0, "blacklist": 0, "total": 0}
-   
-    def generate_timestamp(self, max_age_hours: int = 24) -> str:
-        """Generate a realistic timestamp within the specified time range."""
-        now = datetime.now(timezone.utc)
-        offset = timedelta(
-            hours=random.randint(0, max_age_hours),
-            minutes=random.randint(0, 59),
-            seconds=random.randint(0, 59),
-        )
-        return (now - offset).isoformat()
-   
-    def generate_normal_event(self) -> dict:
-        """Generate a normal/legitimate log event."""
-        user = self.user_pool.get_random_user()
-        self.stats["normal"] += 1
-        self.stats["total"] += 1
-       
-        return {
-            "ts": self.generate_timestamp(),
-            "user_id": f"{user['user_id']}@company.com",
-            "domain": random.choice(NORMAL_DOMAINS),
-            "url": random.choice(NORMAL_URLS),
-            "method": random.choice(HTTP_METHODS),
-            "upload_size_bytes": random.randint(1024, 10485760),
-        }
-   
-    def generate_shadow_it_event(self) -> dict:
-        """Generate a shadow IT log event based on anchors."""
-        user = self.user_pool.get_high_risk_user() if random.random() < 0.6 else self.user_pool.get_random_user()
-       
-        category = random.choice(list(self.config_loader.anchors.keys()))
-        services = self.config_loader.anchors[category]
-        service = random.choice(services)
-       
-        domain = service if "." in service else service.lower().replace(" ", "-") + ".io"
-       
-        self.stats["shadow_it"] += 1
-        self.stats["total"] += 1
-       
-        return {
-            "ts": self.generate_timestamp(),
-            "user_id": f"{user['user_id']}@company.com",
-            "domain": domain,
-            "url": random.choice(SHADOW_IT_URLS),
-            "method": random.choice(["POST", "PUT", "GET"]),
-            "upload_size_bytes": random.randint(10240, 52428800),
-        }
-   
-    def generate_blacklist_event(self) -> dict:
-        """Generate a blacklisted service log event."""
-        user = self.user_pool.get_high_risk_user()
-        service = random.choice(self.config_loader.blacklist)
-        domain = service if "." in service else service.lower().replace(" ", "-") + ".com"
-       
-        self.stats["blacklist"] += 1
-        self.stats["total"] += 1
-       
-        return {
-            "ts": self.generate_timestamp(),
-            "user_id": f"{user['user_id']}@company.com",
-            "domain": domain,
-            "url": random.choice(BLACKLIST_URLS),
-            "method": random.choice(["POST", "PUT"]),
-            "upload_size_bytes": random.randint(52428800, 104857600),
-        }
-   
-    def generate_log(self) -> dict:
-        """Generate a single log event based on configured ratios."""
-        rand = random.random()
-       
-        if rand < self.config.blacklist_ratio:
-            return self.generate_blacklist_event()
-        elif rand < (self.config.blacklist_ratio + self.config.shadow_it_ratio):
-            return self.generate_shadow_it_event()
-        else:
-            return self.generate_normal_event()
-   
-    def generate_batch(self, count: int) -> list[dict]:
-        """Generate a batch of log events."""
-        return [self.generate_log() for _ in range(count)]
-   
-    def get_stats(self) -> dict:
-        """Get generation statistics."""
-        return self.stats.copy()
-   
-    def reset_stats(self) -> None:
-        """Reset generation statistics."""
-        self.stats = {"normal": 0, "shadow_it": 0, "blacklist": 0, "total": 0}
-
-
+# =============================================================================
+# LOG SENDER
+# =============================================================================
 
 class LogSender:
-    """Sends generated logs to the collector service."""
-   
+    """Sends logs to the collector service."""
+
     def __init__(self, collector_url: str, timeout: int = 10):
         self.collector_url = collector_url
         self.timeout = timeout
         self.session = requests.Session()
-        self.stats = {"success": 0, "failed": 0}
-   
-    def send_log(self, log: dict) -> bool:
+
+    def send(self, log: dict) -> bool:
         """Send a single log to the collector."""
         try:
-            response = self.session.post(self.collector_url, json=log, timeout=self.timeout)
+            response = self.session.post(
+                self.collector_url,
+                json=log,
+                timeout=self.timeout
+            )
             response.raise_for_status()
-            self.stats["success"] += 1
             return True
         except requests.exceptions.RequestException as e:
-            logger.warning(f"Failed to send log: {e}")
-            self.stats["failed"] += 1
+            print(f"  [ERROR] Failed to send: {e}")
             return False
-   
-    def send_batch(self, logs: list[dict]) -> tuple[int, int]:
-        """Send a batch of logs. Returns (success_count, failed_count)."""
-        success = sum(1 for log in logs if self.send_log(log))
-        failed = len(logs) - success
-        return success, failed
-   
-    def check_health(self) -> bool:
-        """Check if the collector service is healthy."""
+
+    def health_check(self) -> bool:
+        """Check if collector is reachable."""
         try:
             health_url = self.collector_url.replace("/logs", "/health")
             response = self.session.get(health_url, timeout=5)
             return response.status_code == 200
         except requests.exceptions.RequestException:
             return False
-   
-    def get_stats(self) -> dict:
-        return self.stats.copy()
 
 
+# =============================================================================
+# SCENARIO RUNNER
+# =============================================================================
 
-class GeneratorRunner:
-    """Main runner for the log generator."""
-   
-    def __init__(self, config: GeneratorConfig):
-        self.config = config
-        self.generator = LogGenerator(config)
-        self.sender = LogSender(config.collector_url)
-        self.running = False
-   
-    def run_once(self, count: int) -> None:
-        """Generate and send a specific number of logs."""
-        logger.info(f"Generating {count} logs...")
-       
-        logs = self.generator.generate_batch(count)
-        success, failed = self.sender.send_batch(logs)
-       
-        gen_stats = self.generator.get_stats()
-        logger.info(
-            f"Generated: {gen_stats['total']} | "
-            f"Normal: {gen_stats['normal']} | "
-            f"Shadow IT: {gen_stats['shadow_it']} | "
-            f"Blacklist: {gen_stats['blacklist']}"
-        )
-        logger.info(f"Sent: {success} success, {failed} failed")
-   
-    def run_continuous(self, total_logs: Optional[int] = None) -> None:
-        """Run continuous log generation."""
-        self.running = True
-        logs_sent = 0
-       
-        logger.info("Starting continuous log generation...")
-        logger.info(f"Collector URL: {self.config.collector_url}")
-        logger.info(f"Batch size: {self.config.logs_per_batch}")
-        logger.info(f"Batch delay: {self.config.batch_delay}s")
-       
-        # Check collector health
-        if not self.sender.check_health():
-            logger.warning("Collector health check failed - proceeding anyway")
-       
-        try:
-            while self.running:
-                batch = self.generator.generate_batch(self.config.logs_per_batch)
-                success, failed = self.sender.send_batch(batch)
-                logs_sent += success
-               
-                logger.info(
-                    f"Batch sent: {success}/{len(batch)} | "
-                    f"Total: {logs_sent} | "
-                    f"Shadow IT: {self.generator.stats['shadow_it']} | "
-                    f"Blacklist: {self.generator.stats['blacklist']}"
-                )
-               
-                if total_logs and logs_sent >= total_logs:
-                    logger.info(f"Reached target of {total_logs} logs")
-                    break
-               
-                time.sleep(self.config.batch_delay)
-               
-        except KeyboardInterrupt:
-            logger.info("\nStopping log generation...")
-    def _print_summary(self) -> None:
-        gen_stats = self.generator.get_stats()
-        send_stats = self.sender.get_stats()
-       
-        logger.info("=" * 50)
-        logger.info("Generation Summary")
-        logger.info("=" * 50)
-        logger.info(f"Total generated: {gen_stats['total']}")
-        logger.info(f"  - Normal events: {gen_stats['normal']}")
-        logger.info(f"  - Shadow IT events: {gen_stats['shadow_it']}")
-        logger.info(f"  - Blacklist events: {gen_stats['blacklist']}")
-        logger.info(f"Successfully sent: {send_stats['success']}")
-        logger.info(f"Failed to send: {send_stats['failed']}")
-        logger.info("=" * 50)
-   
-    def print_sample(self, count: int = 5) -> None:
-        logger.info(f"Generating {count} sample logs (not sending):")
-        print("-" * 60)
-        for _ in range(count):
-            log = self.generator.generate_log()
-            print(json.dumps(log, indent=2))
-            print("-" * 60)
+def run_scenario(scenario_type: str, sender: LogSender) -> bool:
+    """Run a specific scenario."""
+    if scenario_type not in SCENARIOS:
+        print(f"[ERROR] Unknown scenario: {scenario_type}")
+        return False
+
+    scenario = SCENARIOS[scenario_type]
+
+    print()
+    print("=" * 60)
+    print(f"  SCENARIO: {scenario['name']}")
+    print("=" * 60)
+    print(f"  Description: {scenario['description']}")
+    print(f"  Expected: {scenario['expected']}")
+    print("-" * 60)
+
+    success_count = 0
+    total = len(scenario["logs"])
+
+    for i, log_template in enumerate(scenario["logs"], 1):
+        log = {
+            **log_template,
+            "ts": datetime.now(timezone.utc).isoformat(),
+        }
+
+        print()
+        print(f"  [{i}/{total}] Sending log...")
+        print(f"       User: {log['user_id']}")
+        print(f"       Domain: {log['domain']}")
+        print(f"       URL: {log['url']}")
+        print(f"       Method: {log['method']}")
+        print(f"       Size: {log['upload_size_bytes']:,} bytes")
+
+        if sender.send(log):
+            print("       Status: SENT")
+            success_count += 1
+        else:
+            print("       Status: FAILED")
+
+    print()
+    print("-" * 60)
+    print(f"  Result: {success_count}/{total} logs sent successfully")
+    print("=" * 60)
+
+    return success_count == total
 
 
+def run_all_scenarios(sender: LogSender) -> None:
+    """Run all scenarios sequentially."""
+    print()
+    print("#" * 60)
+    print("  RUNNING ALL DEMO SCENARIOS")
+    print("#" * 60)
+
+    results = {}
+    for scenario_type in SCENARIOS:
+        success = run_scenario(scenario_type, sender)
+        results[scenario_type] = "PASS" if success else "FAIL"
+
+    print()
+    print("#" * 60)
+    print("  SUMMARY")
+    print("#" * 60)
+    for scenario_type, result in results.items():
+        status_icon = "[OK]" if result == "PASS" else "[FAIL]"
+        print(f"  {status_icon} {scenario_type}")
+    print("#" * 60)
+
+
+# =============================================================================
+# CLI
+# =============================================================================
 
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Synthetic Log Generator for ShadowGuard AI",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="ShadowGuard AI - Scenario-based Log Generator",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Scenarios:
+  shadow_ai   Triggers semantic detection (Risk > 0.7)
+  blacklist   Triggers blacklist detection (Risk = 1.0)
+  whitelist   Whitelist override, no alert (Risk = 0.0)
+  all         Run all scenarios sequentially
+
+Examples:
+  python generate_logs.py --type shadow_ai
+  python generate_logs.py --type blacklist
+  python generate_logs.py --type whitelist
+  python generate_logs.py --type all
+  python generate_logs.py --type shadow_ai --url http://your-server:3000/collect/logs
+        """,
     )
-   
+
+    parser.add_argument(
+        "-t", "--type",
+        choices=["shadow_ai", "blacklist", "whitelist", "all"],
+        required=True,
+        help="Scenario type to run",
+    )
+
     parser.add_argument(
         "-u", "--url",
-        default="http://localhost:8000/logs",
-        help="Collector service URL",
+        default="http://localhost:3000/collect/logs",
+        help="Collector URL (default: http://localhost:3000/collect/logs)",
     )
-    parser.add_argument(
-        "-n", "--num-logs",
-        type=int,
-        default=None,
-        help="Total number of logs to generate (default: unlimited)",
-    )
-    parser.add_argument(
-        "-b", "--batch-size",
-        type=int,
-        default=50,
-        help="Number of logs per batch",
-    )
-    parser.add_argument(
-        "-d", "--delay",
-        type=float,
-        default=1.0,
-        help="Delay between batches in seconds",
-    )
-    parser.add_argument(
-        "--users",
-        type=int,
-        default=10,
-        help="Number of simulated users",
-    )
-    parser.add_argument(
-        "--shadow-ratio",
-        type=float,
-        default=0.3,
-        help="Ratio of shadow IT events (0.0-1.0)",
-    )
-    parser.add_argument(
-        "--blacklist-ratio",
-        type=float,
-        default=0.1,
-        help="Ratio of blacklisted events (0.0-1.0)",
-    )
-    parser.add_argument(
-        "--sample",
-        type=int,
-        default=0,
-        help="Print N sample logs without sending",
-    )
-    parser.add_argument(
-        "--once",
-        action="store_true",
-        help="Generate logs once and exit",
-    )
-    parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Enable verbose logging",
-    )
-   
-    return parser.parse_args()
 
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview logs without sending",
+    )
+
+    return parser.parse_args()
 
 
 def main() -> int:
     """Main entry point."""
     args = parse_args()
-   
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-   
-    # Validate ratios
-    if args.shadow_ratio + args.blacklist_ratio > 1.0:
-        logger.error("shadow-ratio + blacklist-ratio must not exceed 1.0")
-        return 1
-   
-    # Create config
-    config = GeneratorConfig(
-        collector_url=args.url,
-        num_users=args.users,
-        logs_per_batch=args.batch_size,
-        batch_delay=args.delay,
-        shadow_it_ratio=args.shadow_ratio,
-        blacklist_ratio=args.blacklist_ratio,
-    )
-   
-    runner = GeneratorRunner(config)
-   
-    if args.sample > 0:
-        runner.print_sample(args.sample)
-        return 0
-   
-    if args.once:
-        count = args.num_logs or args.batch_size
-        runner.run_once(count)
-        return 0
-   
-    runner.run_continuous(total_logs=args.num_logs)
-    return 0
 
+    print()
+    print("=" * 60)
+    print("  SHADOWGUARD AI - LOG GENERATOR")
+    print("=" * 60)
+    print(f"  Collector: {args.url}")
+    print(f"  Scenario: {args.type}")
+
+    # Dry run mode
+    if args.dry_run:
+        print("  Mode: DRY RUN (no logs sent)")
+        print("-" * 60)
+        
+        scenarios_to_show = SCENARIOS.keys() if args.type == "all" else [args.type]
+        
+        for scenario_type in scenarios_to_show:
+            scenario = SCENARIOS[scenario_type]
+            print(f"\n  {scenario['name']}:")
+            for log in scenario["logs"]:
+                print(f"    - {log['domain']} ({log['method']} {log['url']})")
+        
+        return 0
+
+    sender = LogSender(args.url)
+
+    # Health check
+    print()
+    print("  Checking collector...")
+    if sender.health_check():
+        print("  Collector: ONLINE")
+    else:
+        print("  Collector: OFFLINE (proceeding anyway)")
+
+    # Run scenario(s)
+    if args.type == "all":
+        run_all_scenarios(sender)
+    else:
+        run_scenario(args.type, sender)
+
+    print()
+    return 0
 
 
 if __name__ == "__main__":
