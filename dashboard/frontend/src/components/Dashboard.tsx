@@ -96,9 +96,9 @@ export const Dashboard = () => {
             fetchData();
         }, searchQuery ? 300 : 0);
 
-        // Only set up polling if not actively searching
+        // Only set up polling if not actively filtering
         let interval: ReturnType<typeof setInterval> | null = null;
-        if (!searchQuery) {
+        if (!searchQuery && riskFilter === 'all') {
             interval = setInterval(fetchData, 5000);
         }
 
@@ -392,10 +392,10 @@ export const Dashboard = () => {
                         <div className="flex items-center justify-between p-6 border-b border-slate-800">
                             <div className="flex items-center gap-3">
                                 <div className={`p-2 rounded-lg ${selectedAlert.risk_score > 70 ? 'bg-red-500/20' :
-                                        selectedAlert.risk_score > 40 ? 'bg-orange-500/20' : 'bg-green-500/20'
+                                    selectedAlert.risk_score > 40 ? 'bg-orange-500/20' : 'bg-green-500/20'
                                     }`}>
                                     <AlertTriangle className={`w-5 h-5 ${selectedAlert.risk_score > 70 ? 'text-red-400' :
-                                            selectedAlert.risk_score > 40 ? 'text-orange-400' : 'text-green-400'
+                                        selectedAlert.risk_score > 40 ? 'text-orange-400' : 'text-green-400'
                                         }`} />
                                 </div>
                                 <div>
@@ -420,7 +420,7 @@ export const Dashboard = () => {
                                     <div className="flex items-center gap-3">
                                         <div className="text-4xl font-bold text-white">{selectedAlert.risk_score}</div>
                                         <div className={`px-3 py-1 rounded-full text-sm font-medium ${selectedAlert.risk_score > 70 ? 'bg-red-500/20 text-red-400' :
-                                                selectedAlert.risk_score > 40 ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400'
+                                            selectedAlert.risk_score > 40 ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400'
                                             }`}>
                                             {selectedAlert.risk_score > 70 ? 'High Risk' : selectedAlert.risk_score > 40 ? 'Medium Risk' : 'Low Risk'}
                                         </div>
@@ -502,8 +502,8 @@ export const Dashboard = () => {
                                                 }
                                             }}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${selectedAlert.status === status
-                                                    ? 'bg-brand-600 text-white'
-                                                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                                ? 'bg-brand-600 text-white'
+                                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                                                 } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         >
                                             {status === 'investigating' && <Eye className="w-4 h-4" />}
