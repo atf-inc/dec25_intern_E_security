@@ -9,4 +9,4 @@ RUN pip install --no-cache-dir requests
 COPY generate_logs.py .
 
 # Default command
-CMD ["python", "generate_logs.py", "--url", "http://shadowguard-collector:8000/logs", "--batch-size", "50", "--delay", "2"]
+CMD ["python", "generate_logs.py", "--url", "http://shadowguard-collector:8000/logs", "--batch-size", "7", "--delay", "60", "--blacklist-ratio", "0.1"]

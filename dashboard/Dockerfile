@@ -65,6 +65,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copy startup script
 COPY start.sh /start.sh
+RUN sed -i 's/\r$//' /start.sh
 RUN chmod +x /start.sh
 
 # Expose port 3000 (Nginx will listen here)

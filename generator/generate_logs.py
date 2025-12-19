@@ -399,13 +399,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-b", "--batch-size",
         type=int,
-        default=50,
+        default=7,
         help="Number of logs per batch",
     )
     parser.add_argument(
         "-d", "--delay",
         type=float,
-        default=1.0,
+        default=60.0,
         help="Delay between batches in seconds",
     )
     parser.add_argument(

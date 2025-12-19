@@ -268,8 +268,8 @@ export const Dashboard = () => {
                                                         </span>
                                                     </td>
                                                     <td className="py-4 text-slate-500 text-sm flex items-center gap-1.5">
-                                                        <Clock className="w-3.5 h-3.5" />
-                                                        {timeAgo}
+                                                            <Clock className="w-3.5 h-3.5" />
+                                                            {timeAgo}
                                                     </td>
                                                     <td className="py-4 pr-4 text-right">
                                                         <button className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
