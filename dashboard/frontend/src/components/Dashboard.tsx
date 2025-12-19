@@ -182,7 +182,7 @@ export const Dashboard: React.FC = () => {
                         <div className="absolute inset-0 bg-brand-500 blur-lg opacity-40 rounded-full animate-pulse-glow"></div>
                         <Shield className="w-8 h-8 text-brand-400 relative z-10" />
                     </div>
-                    <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 hidden lg:block">
+                    <span className="text-xl font-bold text-gradient hidden lg:block">
                         ShadowGuard
                     </span>
                 </div>
@@ -194,7 +194,7 @@ export const Dashboard: React.FC = () => {
                             onClick={() => setActiveTab(item.toLowerCase())}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
                                 activeTab === item.toLowerCase()
-                                    ? 'bg-brand-500/10 text-brand-300 border border-brand-500/20 shadow-[0_0_15px_-5px_rgba(139,92,246,0.5)]'
+                                    ? 'bg-brand-500/10 text-brand-300 border border-brand-500/20 glow'
                                     : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
                             }`}
                         >
@@ -248,7 +248,7 @@ export const Dashboard: React.FC = () => {
                     {/* Welcome Section */}
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 animate-slide-up">
                         <div>
-                            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 mb-2">
+                            <h1 className="text-3xl font-bold text-gradient mb-2">
                                 Security Overview
                             </h1>
                             <p className="text-slate-400">Real-time monitoring of shadow IT activities</p>
@@ -263,7 +263,7 @@ export const Dashboard: React.FC = () => {
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up delay-100">
                         {stats.map((stat, i) => (
                             <div key={i} className="glass-card p-5 rounded-2xl relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -288,7 +288,7 @@ export const Dashboard: React.FC = () => {
                     </div>
 
                     {/* Recent Alerts Table */}
-                    <div className="glass-panel rounded-2xl p-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                    <div className="glass-panel rounded-2xl p-6 animate-slide-up delay-200">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-lg font-semibold flex items-center gap-2">
                                 <Activity className="w-5 h-5 text-brand-400" />
