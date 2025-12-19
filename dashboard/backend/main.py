@@ -95,3 +95,86 @@ def _get_all_alerts() -> List[dict]:
         return alerts
     except Exception:
         return []
+
+
+@app.get("/api/stats")
+async def get_stats(time_range: str = Query("all", regex="^(24h|7d|30d|all)$")):
+    """Get dashboard statistics with optional time-range filter."""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis service unavailable")
+    
+    try:
+        alerts = _get_all_alerts()
+        
+        # Apply time filter
+        if time_range != "all":
+            now = datetime.utcnow()
+            if time_range == "24h":
+                cutoff = now - timedelta(hours=24)
+            elif time_range == "7d":
+                cutoff = now - timedelta(days=7)
+            elif time_range == "30d":
+                cutoff = now - timedelta(days=30)
+            else:
+                cutoff = None
+            
+            if cutoff:
+                filtered_alerts = []
+                for alert in alerts:
+                    try:
+                        ts = datetime.fromisoformat(alert.get("timestamp", "").replace("Z", "+00:00"))
+                        ts_naive = ts.replace(tzinfo=None)
+                        if ts_naive >= cutoff:
+                            filtered_alerts.append(alert)
+                    except (ValueError, TypeError):
+                        filtered_alerts.append(alert)
+                alerts = filtered_alerts
+        
+        total = len(alerts)
+        
+        if total == 0:
+            return {
+                "total_alerts": 0, "high_risk": 0, "medium_risk": 0, "low_risk": 0,
+                "unique_users": 0, "avg_risk_score": 0.0,
+                "top_domains": [], "top_users": [], "time_range": time_range
+            }
+        
+        # Risk level counts (score is 0-100)
+        high_risk = sum(1 for a in alerts if a.get("risk_score", 0) > 70)
+        medium_risk = sum(1 for a in alerts if 40 <= a.get("risk_score", 0) <= 70)
+        low_risk = sum(1 for a in alerts if a.get("risk_score", 0) < 40)
+        
+        # Unique users and average score
+        users = set(a.get("user", "") for a in alerts if a.get("user"))
+        scores = [a.get("risk_score", 0) for a in alerts]
+        avg_score = sum(scores) / len(scores) if scores else 0
+        
+        # Top domains by frequency
+        domain_counts = {}
+        for a in alerts:
+            domain = a.get("domain", "unknown")
+            domain_counts[domain] = domain_counts.get(domain, 0) + 1
+        top_domains = sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        # Top users by max risk score
+        user_max_risk = {}
+        for a in alerts:
+            user = a.get("user", "unknown")
+            risk = a.get("risk_score", 0)
+            if user not in user_max_risk or risk > user_max_risk[user]:
+                user_max_risk[user] = risk
+        top_users = sorted(user_max_risk.items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        return {
+            "total_alerts": total,
+            "high_risk": high_risk,
+            "medium_risk": medium_risk,
+            "low_risk": low_risk,
+            "unique_users": len(users),
+            "avg_risk_score": round(avg_score, 2),
+            "top_domains": [{"domain": d, "count": c} for d, c in top_domains],
+            "top_users": [{"user": u, "max_risk": r} for u, r in top_users],
+            "time_range": time_range
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating stats: {str(e)}")
