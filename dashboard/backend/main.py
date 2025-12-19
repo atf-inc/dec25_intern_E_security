@@ -346,8 +346,37 @@ async def get_analytics(time_range: str = Query("7d", regex="^(24h|7d|30d|all)$"
             del entry["total_risk"]
             trend_data.append(entry)
         
+        # Top risky users (by alert count and max risk)
+        user_stats = {}
+        for a in alerts:
+            user = a.get("user", "unknown")
+            if user not in user_stats:
+                user_stats[user] = {"user": user, "alert_count": 0, "max_risk": 0, "total_risk": 0}
+            user_stats[user]["alert_count"] += 1
+            user_stats[user]["max_risk"] = max(user_stats[user]["max_risk"], a.get("risk_score", 0))
+            user_stats[user]["total_risk"] += a.get("risk_score", 0)
+        
+        for user in user_stats.values():
+            user["avg_risk"] = round(user["total_risk"] / user["alert_count"], 2) if user["alert_count"] > 0 else 0
+            del user["total_risk"]
+        
+        top_users = sorted(user_stats.values(), key=lambda x: x["max_risk"], reverse=True)[:10]
+        
+        # Top risky domains
+        domain_stats = {}
+        for a in alerts:
+            domain = a.get("domain", "unknown")
+            if domain not in domain_stats:
+                domain_stats[domain] = {"domain": domain, "alert_count": 0, "max_risk": 0}
+            domain_stats[domain]["alert_count"] += 1
+            domain_stats[domain]["max_risk"] = max(domain_stats[domain]["max_risk"], a.get("risk_score", 0))
+        
+        top_domains = sorted(domain_stats.values(), key=lambda x: x["alert_count"], reverse=True)[:10]
+        
         return {
             "risk_trend": trend_data,
+            "top_users": top_users,
+            "top_domains": top_domains,
             "time_range": time_range,
             "total_alerts": len(alerts)
         }
