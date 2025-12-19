@@ -259,3 +259,36 @@ async def get_alert_by_id(alert_id: str):
         raise HTTPException(status_code=500, detail=f"Error fetching alert: {str(e)}")
 
 
+@app.patch("/api/alerts/{alert_id}/status")
+async def update_alert_status(
+    alert_id: str, 
+    status: str = Query(..., regex="^(new|investigating|resolved|dismissed)$")
+):
+    """Update the status of an alert."""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis service unavailable")
+    
+    try:
+        # Get all alerts
+        raw_alerts = redis_client.lrange("alerts", 0, -1)
+        
+        for i, alert_str in enumerate(raw_alerts):
+            try:
+                alert = json.loads(alert_str)
+                if alert.get("id") == alert_id:
+                    # Update status
+                    alert["status"] = status
+                    # Update in Redis (replace at same position)
+                    redis_client.lset("alerts", i, json.dumps(alert))
+                    return {"message": f"Alert status updated to '{status}'", "alert": alert}
+            except json.JSONDecodeError:
+                continue
+        
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating alert: {str(e)}")
+
+
+
