@@ -38,6 +38,8 @@ export const Dashboard = () => {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('overview');
     const [apiStats, setApiStats] = useState<Stats | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
 
     const stats = [
         { label: 'Total Alerts', value: apiStats?.total_alerts?.toString() || '0', trend: '+0%', icon: Bell, color: 'text-blue-400' },
@@ -49,9 +51,13 @@ export const Dashboard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch alerts and stats in parallel
+                // Use search endpoint if there's a query, otherwise use regular alerts
+                const alertsUrl = searchQuery
+                    ? `/api/alerts/search?q=${encodeURIComponent(searchQuery)}`
+                    : '/api/alerts';
+
                 const [alertsRes, statsRes] = await Promise.all([
-                    fetch('/api/alerts'),
+                    fetch(alertsUrl),
                     fetch('/api/stats')
                 ]);
 
@@ -69,13 +75,26 @@ export const Dashboard = () => {
                 setError(err instanceof Error ? err.message : 'Failed to fetch data');
             } finally {
                 setLoading(false);
+                setIsSearching(false);
             }
         };
 
-        fetchData();
-        const interval = setInterval(fetchData, 5000);
-        return () => clearInterval(interval);
-    }, []);
+        // Debounce search
+        const timeoutId = setTimeout(() => {
+            fetchData();
+        }, searchQuery ? 300 : 0);
+
+        // Only set up polling if not actively searching
+        let interval: ReturnType<typeof setInterval> | null = null;
+        if (!searchQuery) {
+            interval = setInterval(fetchData, 5000);
+        }
+
+        return () => {
+            clearTimeout(timeoutId);
+            if (interval) clearInterval(interval);
+        };
+    }, [searchQuery]);
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-50 font-sans selection:bg-brand-500/30">
@@ -140,9 +159,19 @@ export const Dashboard = () => {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-brand-400 transition-colors" />
                             <input
                                 type="text"
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setIsSearching(true);
+                                }}
                                 placeholder="Search events, users, or domains..."
                                 className="w-full bg-slate-900/50 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/50 transition-all placeholder:text-slate-600"
                             />
+                            {isSearching && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <Activity className="w-4 h-4 text-brand-400 animate-spin" />
+                                </div>
+                            )}
                         </div>
                     </div>
 
