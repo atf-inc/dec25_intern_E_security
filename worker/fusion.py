@@ -104,49 +104,169 @@ class FusionEngine:
             return "LOW"
         else:
             return "SAFE"
+    
+    def _get_method_multiplier(self, method: str) -> float:
+        """
+        Get risk multiplier based on HTTP method.
+        
+        Args:
+            method: HTTP method (GET, POST, PUT, DELETE, etc.)
+            
+        Returns:
+            Risk multiplier (0.3 for GET, 1.0 for POST, etc.)
+        """
+        multipliers = {
+            "GET": 0.3,    # Read-only, 70% risk reduction
+            "POST": 1.0,   # Baseline for write operations
+            "PUT": 1.2,    # Upload/update, slightly elevated
+            "DELETE": 0.5  # Removal, lower data exposure risk
+        }
+        return multipliers.get(method.upper(), 1.0)
+    
+    def _get_upload_multiplier(self, method: str, size_bytes: int) -> float:
+        """
+        Get risk multiplier based on upload size.
+        Only applies to POST/PUT requests.
+        
+        Args:
+            method: HTTP method
+            size_bytes: Upload size in bytes
+            
+        Returns:
+            Risk multiplier (1.0 to 2.0)
+        """
+        if method.upper() not in ["POST", "PUT"]:
+            return 1.0
+        
+        size_mb = size_bytes / (1024 * 1024)
+        
+        if size_mb > 50:
+            return 2.0   # Very large upload
+        elif size_mb > 10:
+            return 1.5   # Large upload
+        elif size_mb > 1:
+            return 1.2   # Moderate upload
+        return 1.0       # Small upload
+    
+    def _get_behavior_adjustment(self, behavior_result: Dict[str, Any]) -> float:
+        """
+        Get behavior score adjustment based on visit history.
+        
+        Args:
+            behavior_result: Result from BehaviorEngine.analyze()
+            
+        Returns:
+            Adjustment value (-0.2 to +0.2)
+        """
+        if behavior_result.get("is_first_visit", False):
+            return 0.2   # Novel domain = higher risk
+        # Could add: check visit_count for repeated usage
+        # elif behavior_result.get("visit_count", 0) > 3:
+        #     return -0.2  # Established pattern = lower risk
+        return 0.0       # Normal
+    
+    def _is_content_consumption(self, domain: str, url: str) -> bool:
+        """
+        Quick check for content consumption patterns.
+        
+        Args:
+            domain: Domain name
+            url: URL path
+            
+        Returns:
+            True if content consumption detected
+        """
+        # Import here to avoid circular dependency
+        try:
+            from semantic import OpenRouterSimilarityDetector
+            return OpenRouterSimilarityDetector.is_content_consumption(domain, url)
+        except ImportError:
+            # Fallback to basic check
+            PATTERNS = ["news", "docs", "wiki", "stackoverflow", "search"]
+            combined = (domain + url).lower()
+            return any(p in combined for p in PATTERNS)
+    
     def fuse(
         self,
         domain: str,
         user_id: str,
+        url: str,
+        method: str,
+        upload_size_bytes: int,
         behavior_result: Dict[str, Any],
         semantic_result: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Fuse behavior and semantic analysis results into final risk assessment.
+        Context-aware fusion of behavior and semantic analysis.
         
         Args:
             domain: Domain being analyzed
             user_id: User ID
+            url: URL path
+            method: HTTP method (GET, POST, PUT, DELETE)
+            upload_size_bytes: Upload size in bytes
             behavior_result: Result from BehaviorEngine.analyze()
             semantic_result: Result from OpenRouterSimilarityDetector.analyze()
             
         Returns:
             Final fused risk assessment
         """
-        # Check explicit lists first
+        # Content consumption override (highest priority)
+        if method.upper() == "GET" and self._is_content_consumption(domain, url):
+            return {
+                "timestamp": datetime.utcnow().isoformat(),
+                "user_id": user_id,
+                "domain": domain,
+                "url": url,
+                "method": method,
+                "upload_size_mb": 0,
+                "final_risk_score": 0.0,
+                "risk_level": "SAFE",
+                "override": True,
+                "override_reason": "Read-only access to informational content (news/docs/search)",
+                "behavior_score": 0.0,
+                "semantic_score": 0.0,
+                "fusion_method": "content_consumption_override"
+            }
+        
+        # Check explicit lists (blacklist/whitelist)
         override = self._check_explicit_lists(domain)
         if override["override"]:
             return {
                 "timestamp": datetime.utcnow().isoformat(),
                 "user_id": user_id,
                 "domain": domain,
+                "url": url,
+                "method": method,
+                "upload_size_mb": round(upload_size_bytes / (1024 * 1024), 2),
                 "final_risk_score": override["final_risk"],
                 "risk_level": override["risk_level"],
                 "override": True,
                 "override_reason": override["reason"],
                 "behavior_score": None,
                 "semantic_score": None,
-                "fusion_method": "override"
+                "fusion_method": "explicit_list_override"
             }
         
-        # Extract scores
+        # Extract base scores
         behavior_score = behavior_result.get("behavior_score", 0.0)
         semantic_score = semantic_result.get("risk_score", 0.0)
         
-        # Apply weighted fusion
-        fused_score = (
-            self.behavior_weight * behavior_score +
-            self.semantic_weight * semantic_score
+        # Apply context multipliers
+        method_multiplier = self._get_method_multiplier(method)
+        upload_multiplier = self._get_upload_multiplier(method, upload_size_bytes)
+        
+        # Context-aware semantic score
+        context_semantic_score = semantic_score * method_multiplier * upload_multiplier
+        
+        # Behavior adjustment
+        behavior_adjustment = self._get_behavior_adjustment(behavior_result)
+        
+        # Final weighted fusion
+        fused_score = min(
+            (context_semantic_score * self.semantic_weight) + 
+            (behavior_adjustment * self.behavior_weight),
+            1.0
         )
         
         # Determine risk level
@@ -157,6 +277,9 @@ class FusionEngine:
             "timestamp": datetime.utcnow().isoformat(),
             "user_id": user_id,
             "domain": domain,
+            "url": url,
+            "method": method,
+            "upload_size_mb": round(upload_size_bytes / (1024 * 1024), 2),
             
             # Final assessment
             "final_risk_score": round(fused_score, 3),
@@ -166,12 +289,17 @@ class FusionEngine:
             # Component scores
             "behavior_score": round(behavior_score, 3),
             "semantic_score": round(semantic_score, 3),
+            "context_semantic_score": round(context_semantic_score, 3),
+            
+            # Multipliers
+            "method_multiplier": method_multiplier,
+            "upload_multiplier": upload_multiplier,
             
             # Fusion details
-            "fusion_method": "weighted",
+            "fusion_method": "context_aware_weighted",
             "weights": {
-                "behavior": self.behavior_weight,
-                "semantic": self.semantic_weight
+                "semantic": self.semantic_weight,
+                "behavior": self.behavior_weight
             },
             
             # Original analysis details
@@ -181,6 +309,7 @@ class FusionEngine:
             },
             "semantic_analysis": {
                 "top_category": semantic_result.get("top_category", "unknown"),
+                "category_type": semantic_result.get("category_type", "unknown"),
                 "similarities": semantic_result.get("similarities", {}),
                 "explanation": semantic_result.get("explanation", "")
             }
@@ -190,7 +319,7 @@ class FusionEngine:
 
     def generate_alert(self, fused_result: Dict[str, Any]) -> str:
         """
-        Generate human-readable alert message based on fused result.
+        Generate human-readable, non-accusatory alert message.
         
         Args:
             fused_result: Output from fuse()
@@ -202,33 +331,63 @@ class FusionEngine:
         domain = fused_result["domain"]
         user = fused_result["user_id"]
         score = fused_result["final_risk_score"]
+        method = fused_result.get("method", "UNKNOWN")
+        upload_mb = fused_result.get("upload_size_mb", 0)
+        category = fused_result.get("semantic_analysis", {}).get("category_type", "unknown")
         
+        # Risk-based presentation
         if risk == "CRITICAL":
             emoji = "🚨"
-            action = "BLOCK immediately"
+            action = "Review immediately and contact user"
         elif risk == "HIGH":
             emoji = "⚠️"
-            action = "ALERT security team"
+            action = "Review within 24 hours"
         elif risk == "MEDIUM":
             emoji = "⚡"
-            action = "MONITOR closely"
+            action = "Monitor for repeated usage"
         elif risk == "LOW":
             emoji = "ℹ️"
-            action = "LOG for review"
+            action = "Log for audit trail"
         else:
             emoji = "✅"
-            action = "ALLOW"
+            action = "No action needed"
         
-        alert = f"{emoji} {risk} RISK ({score:.2f}): User '{user}' → {domain}\n"
-        alert += f"   Action: {action}\n"
+        # Build non-accusatory explanation
+        parts = []
+        parts.append(f"{emoji} Data Exposure Risk: {risk} ({score:.2f})")
+        parts.append(f"User: {user}")
+        parts.append(f"Domain: {domain}")
+        parts.append(f"Action: {method}")
         
+        # Why it triggered (focus on behavior)
         if fused_result.get("override"):
-            alert += f"   Reason: {fused_result['override_reason']}\n"
+            parts.append(f"\nReason: {fused_result['override_reason']}")
         else:
-            alert += f"   Behavior: {fused_result['behavior_analysis']['reason']}\n"
-            alert += f"   Semantic: {fused_result['semantic_analysis']['explanation']}\n"
+            parts.append("\nRisk Factors:")
+            
+            # Method context
+            if method in ["POST", "PUT"]:
+                if upload_mb > 10:
+                    parts.append(f"  - Large data upload ({upload_mb:.1f} MB) to {category}")
+                else:
+                    parts.append(f"  - Data submission to {category}")
+            else:
+                parts.append(f"  - Accessed {category}")
+            
+            # Behavioral context
+            if fused_result.get("behavior_analysis", {}).get("is_first_visit", False):
+                parts.append("  - First-time access to this service")
+            
+            # Semantic context
+            sem_explanation = fused_result.get("semantic_analysis", {}).get("explanation", "")
+            if sem_explanation and "similarity" in sem_explanation.lower():
+                parts.append(f"  - {sem_explanation}")
         
-        return alert
+        parts.append(f"\nRecommended Action: {action}")
+        parts.append("\nNote: This alert indicates potential unintentional data exposure risk, not malicious activity.")
+        
+        return "\n".join(parts)
+
 
     
 

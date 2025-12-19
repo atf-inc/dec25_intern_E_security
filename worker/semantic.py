@@ -13,6 +13,22 @@ except ImportError:
     pass
 
 
+# Content consumption patterns (no embeddings needed)
+CONTENT_KEYWORDS = [
+    # News & Media
+    "news", "times", "post", "journal", "reuters", "bloomberg", "cnn", "bbc",
+    "guardian", "telegraph", "wsj", "nytimes", "forbes", "indiatimes", "hindustan",
+    # Documentation
+    "docs", "documentation", "wiki", "readthedocs", "manual", "guide", "tutorial",
+    # Q&A / Learning
+    "stackoverflow", "stackexchange", "reddit", "medium", "dev.to", "hashnode",
+    # Search engines
+    "google", "bing", "duckduckgo", "yahoo"
+]
+
+SEARCH_PATTERNS = ["/search", "?q=", "?query=", "?search=", "/q/"]
+
+
 class OpenRouterSimilarityDetector:
     def __init__(
         self,
@@ -190,22 +206,86 @@ class OpenRouterSimilarityDetector:
 
     # ---------------- RISK LOGIC ----------------
 
-    def _calculate_risk_score(self, sims: Dict[str, float]) -> Tuple[float, str]:
+    def _calculate_risk_score(self, sims: Dict[str, float]) -> Tuple[float, str, str]:
+        """
+        Calculate risk score from similarities.
+        
+        Returns:
+            Tuple of (risk_score, explanation, category_type)
+        """
         top_cat = max(sims, key=sims.get)
         score = sims[top_cat]
-
-        if top_cat == "generative_ai":
-            return 0.9, f"High-confidence AI service ({score:.2f})"
-        if top_cat == "anonymous_services":
-            return 0.6, f"Anonymous service ({score:.2f})"
-        if top_cat == "file_storage":
-            return 0.2, f"File storage ({score:.2f})"
-
-        return 0.3, "Unknown"
+        
+        # Map categories to risk levels and types
+        category_mapping = {
+            "generative_ai_chatbots": (0.8, "Generative AI chatbot", "ai_tool"),
+            "generative_ai": (0.8, "Generative AI service", "ai_tool"),
+            "media_content_creation": (0.6, "Content creation tool", "creative_tool"),
+            "transcription_productivity": (0.7, "Transcription/productivity service", "productivity"),
+            "coding_assistants": (0.7, "Coding assistant", "dev_tool"),
+            "unapproved_cloud_storage": (0.7, "Unapproved cloud storage", "file_storage"),
+            "file_storage": (0.7, "File storage service", "file_storage"),
+            "messaging_collaboration": (0.6, "Messaging/collaboration tool", "collaboration"),
+            "consumer_saas_tools": (0.5, "Consumer SaaS tool", "saas"),
+            "file_transfer_anonymous": (0.9, "Anonymous file transfer", "file_transfer"),
+            "anonymous_communication": (0.8, "Anonymous communication service", "anonymous"),
+            "anonymous_services": (0.8, "Anonymous service", "anonymous"),
+        }
+        
+        if top_cat in category_mapping:
+            risk, desc, cat_type = category_mapping[top_cat]
+            return risk, f"{desc} (similarity: {score:.2f})", cat_type
+        
+        return 0.4, f"Unknown category (similarity: {score:.2f})", "unknown"
 
     # ---------------- PUBLIC API ----------------
+    
+    @staticmethod
+    def is_content_consumption(domain: str, url: str = "") -> bool:
+        """
+        Detect if domain/URL represents content consumption (news, docs, search).
+        
+        This is a fast, keyword-based check that avoids embedding calls.
+        
+        Args:
+            domain: Domain name
+            url: URL path (optional)
+            
+        Returns:
+            True if content consumption, False otherwise
+        """
+        combined = (domain + url).lower()
+        
+        # Check for search patterns first (most specific)
+        if any(pattern in url.lower() for pattern in SEARCH_PATTERNS):
+            return True
+        
+        # Check for content keywords
+        return any(keyword in combined for keyword in CONTENT_KEYWORDS)
 
-    def analyze(self, domain: str) -> Dict[str, Any]:
+    def analyze(self, domain: str, url: str = "") -> Dict[str, Any]:
+        """
+        Analyze domain risk using semantic similarity.
+        
+        Args:
+            domain: Domain name
+            url: URL path (optional, used for content consumption detection)
+            
+        Returns:
+            Risk analysis result
+        """
+        # Check for content consumption first (fast path)
+        if self.is_content_consumption(domain, url):
+            return {
+                "domain": domain,
+                "risk_score": 0.1,
+                "top_category": "content_consumption",
+                "category_type": "informational",
+                "similarities": {},
+                "explanation": "Content consumption domain (news/docs/search)"
+            }
+        
+        # Perform semantic analysis
         if self.offline_mode:
             sims = self._compute_similarities_offline(domain)
         else:
@@ -218,12 +298,13 @@ class OpenRouterSimilarityDetector:
                 print(f"⚠ Embedding failed for '{domain}', using offline mode: {e}")
                 sims = self._compute_similarities_offline(domain)
 
-        risk, reason = self._calculate_risk_score(sims)
+        risk, reason, cat_type = self._calculate_risk_score(sims)
 
         return {
             "domain": domain,
             "risk_score": risk,
             "top_category": max(sims, key=sims.get),
+            "category_type": cat_type,
             "similarities": sims,
             "explanation": reason
         }
