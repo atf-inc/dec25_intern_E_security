@@ -238,3 +238,24 @@ async def search_alerts(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error searching alerts: {str(e)}")
 
+
+@app.get("/api/alerts/{alert_id}")
+async def get_alert_by_id(alert_id: str):
+    """Get a single alert by ID for investigation."""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis service unavailable")
+    
+    try:
+        alerts = _get_all_alerts()
+        
+        for alert in alerts:
+            if alert.get("id") == alert_id:
+                return alert
+        
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching alert: {str(e)}")
+
+
