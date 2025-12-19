@@ -19,6 +19,17 @@ interface Alert {
     domain: string;
     category: string;
     timestamp: string;
+    status?: string;
+    ai_message?: string;
+}
+
+interface Stats {
+    total_alerts: number;
+    high_risk: number;
+    medium_risk: number;
+    low_risk: number;
+    unique_users: number;
+    avg_risk_score: number;
 }
 
 export const Dashboard = () => {
@@ -26,45 +37,43 @@ export const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('overview');
-    const [stats, setStats] = useState([
-        { label: 'Total Alerts', value: '0', trend: '+0%', icon: Bell, color: 'text-blue-400' },
-        { label: 'High Risk', value: '0', trend: '+0%', icon: AlertTriangle, color: 'text-red-400' },
-        { label: 'Active Users', value: '0', trend: '+0%', icon: Users, color: 'text-green-400' },
-        { label: 'Avg Risk Score', value: '0.00', trend: '0%', icon: Activity, color: 'text-purple-400' },
-    ]);
+    const [apiStats, setApiStats] = useState<Stats | null>(null);
+
+    const stats = [
+        { label: 'Total Alerts', value: apiStats?.total_alerts?.toString() || '0', trend: '+0%', icon: Bell, color: 'text-blue-400' },
+        { label: 'High Risk', value: apiStats?.high_risk?.toString() || '0', trend: '+0%', icon: AlertTriangle, color: 'text-red-400' },
+        { label: 'Active Users', value: apiStats?.unique_users?.toString() || '0', trend: '+0%', icon: Users, color: 'text-green-400' },
+        { label: 'Avg Risk Score', value: apiStats?.avg_risk_score?.toFixed(2) || '0.00', trend: '0%', icon: Activity, color: 'text-purple-400' },
+    ];
 
     useEffect(() => {
-        const fetchAlerts = async () => {
+        const fetchData = async () => {
             try {
-                const response = await fetch('/api/alerts');
-                if (!response.ok) throw new Error('Failed to fetch alerts');
-                const data = await response.json();
-                setAlerts(data.alerts || []);
+                // Fetch alerts and stats in parallel
+                const [alertsRes, statsRes] = await Promise.all([
+                    fetch('/api/alerts'),
+                    fetch('/api/stats')
+                ]);
+
+                if (!alertsRes.ok) throw new Error('Failed to fetch alerts');
+                if (!statsRes.ok) throw new Error('Failed to fetch stats');
+
+                const alertsData = await alertsRes.json();
+                const statsData = await statsRes.json();
+
+                setAlerts(alertsData.alerts || []);
+                setApiStats(statsData);
                 setError(null);
-
-                // Update stats based on real data
-                if (data.alerts && data.alerts.length > 0) {
-                    const highRisk = data.alerts.filter((a: Alert) => a.risk_score > 75).length;
-                    const uniqueUsers = new Set(data.alerts.map((a: Alert) => a.user)).size;
-                    const avgRisk = (data.alerts.reduce((sum: number, a: Alert) => sum + a.risk_score, 0) / data.alerts.length / 100).toFixed(2);
-
-                    setStats([
-                        { label: 'Total Alerts', value: data.alerts.length.toString(), trend: '+0%', icon: Bell, color: 'text-blue-400' },
-                        { label: 'High Risk', value: highRisk.toString(), trend: '+0%', icon: AlertTriangle, color: 'text-red-400' },
-                        { label: 'Active Users', value: uniqueUsers.toString(), trend: '+0%', icon: Users, color: 'text-green-400' },
-                        { label: 'Avg Risk Score', value: avgRisk, trend: '0%', icon: Activity, color: 'text-purple-400' },
-                    ]);
-                }
             } catch (err) {
-                console.error('Error fetching alerts:', err);
-                setError(err instanceof Error ? err.message : 'Failed to fetch alerts');
+                console.error('Error fetching data:', err);
+                setError(err instanceof Error ? err.message : 'Failed to fetch data');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchAlerts();
-        const interval = setInterval(fetchAlerts, 5000); // Refresh every 5 seconds
+        fetchData();
+        const interval = setInterval(fetchData, 5000);
         return () => clearInterval(interval);
     }, []);
 
