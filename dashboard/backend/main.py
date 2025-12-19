@@ -373,10 +373,20 @@ async def get_analytics(time_range: str = Query("7d", regex="^(24h|7d|30d|all)$"
         
         top_domains = sorted(domain_stats.values(), key=lambda x: x["alert_count"], reverse=True)[:10]
         
+        # Category breakdown
+        category_counts = {}
+        for a in alerts:
+            cat = a.get("category", "unknown")
+            category_counts[cat] = category_counts.get(cat, 0) + 1
+        
+        categories = [{"category": k, "count": v} for k, v in category_counts.items()]
+        categories.sort(key=lambda x: x["count"], reverse=True)
+        
         return {
             "risk_trend": trend_data,
             "top_users": top_users,
             "top_domains": top_domains,
+            "categories": categories,
             "time_range": time_range,
             "total_alerts": len(alerts)
         }
