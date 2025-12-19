@@ -178,3 +178,63 @@ async def get_stats(time_range: str = Query("all", regex="^(24h|7d|30d|all)$")):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calculating stats: {str(e)}")
+
+
+@app.get("/api/alerts/search")
+async def search_alerts(
+    q: Optional[str] = None,
+    risk_level: Optional[str] = Query(None, regex="^(high|medium|low)$"),
+    category: Optional[str] = None,
+    user: Optional[str] = None,
+    domain: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0
+):
+    """Search and filter alerts by various criteria."""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis service unavailable")
+    
+    try:
+        alerts = _get_all_alerts()
+        
+        # Apply filters
+        if q:
+            q_lower = q.lower()
+            alerts = [a for a in alerts if (
+                q_lower in a.get("user", "").lower() or
+                q_lower in a.get("domain", "").lower() or
+                q_lower in a.get("category", "").lower() or
+                q_lower in a.get("ai_message", "").lower()
+            )]
+        
+        if risk_level:
+            if risk_level == "high":
+                alerts = [a for a in alerts if a.get("risk_score", 0) > 70]
+            elif risk_level == "medium":
+                alerts = [a for a in alerts if 40 <= a.get("risk_score", 0) <= 70]
+            elif risk_level == "low":
+                alerts = [a for a in alerts if a.get("risk_score", 0) < 40]
+        
+        if category:
+            alerts = [a for a in alerts if a.get("category", "").lower() == category.lower()]
+        
+        if user:
+            alerts = [a for a in alerts if user.lower() in a.get("user", "").lower()]
+        
+        if domain:
+            alerts = [a for a in alerts if domain.lower() in a.get("domain", "").lower()]
+        
+        # Pagination
+        total = len(alerts)
+        paginated = alerts[offset:offset + limit]
+        
+        return {
+            "alerts": paginated,
+            "total": total,
+            "count": len(paginated),
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error searching alerts: {str(e)}")
+
