@@ -140,7 +140,6 @@ class LogSender:
 # SCENARIO RUNNER
 
 def run_scenario(scenario_type: str, sender: LogSender) -> bool:
-    """Run a specific scenario."""
     if scenario_type not in SCENARIOS:
         print(f"[ERROR] Unknown scenario: {scenario_type}")
         return False
