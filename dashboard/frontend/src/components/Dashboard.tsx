@@ -9,7 +9,9 @@ import {
     Menu,
     Globe,
     Clock,
-    Filter
+    Filter,
+    ChevronDown,
+    X
 } from 'lucide-react';
 
 interface Alert {
@@ -40,6 +42,8 @@ export const Dashboard = () => {
     const [apiStats, setApiStats] = useState<Stats | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    const [riskFilter, setRiskFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
     const stats = [
         { label: 'Total Alerts', value: apiStats?.total_alerts?.toString() || '0', trend: '+0%', icon: Bell, color: 'text-blue-400' },
@@ -51,9 +55,13 @@ export const Dashboard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Use search endpoint if there's a query, otherwise use regular alerts
-                const alertsUrl = searchQuery
-                    ? `/api/alerts/search?q=${encodeURIComponent(searchQuery)}`
+                // Build search URL with filters
+                const params = new URLSearchParams();
+                if (searchQuery) params.append('q', searchQuery);
+                if (riskFilter !== 'all') params.append('risk_level', riskFilter);
+
+                const alertsUrl = params.toString()
+                    ? `/api/alerts/search?${params.toString()}`
                     : '/api/alerts';
 
                 const [alertsRes, statsRes] = await Promise.all([
@@ -94,7 +102,7 @@ export const Dashboard = () => {
             clearTimeout(timeoutId);
             if (interval) clearInterval(interval);
         };
-    }, [searchQuery]);
+    }, [searchQuery, riskFilter]);
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-50 font-sans selection:bg-brand-500/30">
@@ -195,10 +203,49 @@ export const Dashboard = () => {
                             </h1>
                             <p className="text-slate-400">Real-time monitoring of shadow IT activities</p>
                         </div>
-                        <div className="flex gap-2">
-                            <button className="px-4 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-sm font-medium hover:bg-slate-800 transition-colors flex items-center gap-2">
-                                <Filter className="w-4 h-4" /> Filter
-                            </button>
+                        <div className="flex gap-2 relative">
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                                    className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors flex items-center gap-2 ${riskFilter !== 'all'
+                                        ? 'bg-brand-600/20 border-brand-500/50 text-brand-300'
+                                        : 'bg-slate-800/50 border-slate-700/50 hover:bg-slate-800'
+                                        }`}
+                                >
+                                    <Filter className="w-4 h-4" />
+                                    {riskFilter === 'all' ? 'Filter' : `${riskFilter.charAt(0).toUpperCase() + riskFilter.slice(1)} Risk`}
+                                    <ChevronDown className="w-3 h-3" />
+                                </button>
+                                {showFilterDropdown && (
+                                    <div className="absolute top-full mt-2 right-0 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 min-w-[150px] overflow-hidden">
+                                        {['all', 'high', 'medium', 'low'].map((level) => (
+                                            <button
+                                                key={level}
+                                                onClick={() => {
+                                                    setRiskFilter(level as typeof riskFilter);
+                                                    setShowFilterDropdown(false);
+                                                    setIsSearching(true);
+                                                }}
+                                                className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-700 transition-colors flex items-center gap-2 ${riskFilter === level ? 'text-brand-400 bg-slate-700/50' : 'text-slate-300'
+                                                    }`}
+                                            >
+                                                {level === 'all' && 'All Risks'}
+                                                {level === 'high' && <><span className="w-2 h-2 rounded-full bg-red-500" /> High Risk</>}
+                                                {level === 'medium' && <><span className="w-2 h-2 rounded-full bg-orange-500" /> Medium Risk</>}
+                                                {level === 'low' && <><span className="w-2 h-2 rounded-full bg-green-500" /> Low Risk</>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            {riskFilter !== 'all' && (
+                                <button
+                                    onClick={() => { setRiskFilter('all'); setIsSearching(true); }}
+                                    className="p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
                             <button className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-500 transition-all shadow-[0_0_20px_-5px_rgba(124,58,237,0.5)]">
                                 Download Report
                             </button>
