@@ -291,4 +291,69 @@ async def update_alert_status(
         raise HTTPException(status_code=500, detail=f"Error updating alert: {str(e)}")
 
 
+@app.get("/api/analytics")
+async def get_analytics(time_range: str = Query("7d", regex="^(24h|7d|30d|all)$")):
+    """Get analytics data for charts and visualizations."""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis service unavailable")
+    
+    try:
+        alerts = _get_all_alerts()
+        
+        # Apply time filter
+        now = datetime.utcnow()
+        if time_range == "24h":
+            cutoff = now - timedelta(hours=24)
+        elif time_range == "7d":
+            cutoff = now - timedelta(days=7)
+        elif time_range == "30d":
+            cutoff = now - timedelta(days=30)
+        else:
+            cutoff = None
+        
+        if cutoff:
+            filtered = []
+            for a in alerts:
+                try:
+                    ts = datetime.fromisoformat(a.get("timestamp", "").replace("Z", "+00:00"))
+                    if ts.replace(tzinfo=None) >= cutoff:
+                        filtered.append(a)
+                except (ValueError, TypeError):
+                    filtered.append(a)
+            alerts = filtered
+        
+        # Risk trend over time (group by hour for 24h, day for 7d/30d)
+        risk_trend = {}
+        for a in alerts:
+            try:
+                ts = datetime.fromisoformat(a.get("timestamp", "").replace("Z", "+00:00"))
+                if time_range == "24h":
+                    key = ts.strftime("%Y-%m-%d %H:00")
+                else:
+                    key = ts.strftime("%Y-%m-%d")
+                if key not in risk_trend:
+                    risk_trend[key] = {"timestamp": key, "count": 0, "total_risk": 0}
+                risk_trend[key]["count"] += 1
+                risk_trend[key]["total_risk"] += a.get("risk_score", 0)
+            except (ValueError, TypeError):
+                continue
+        
+        # Calculate average risk per period
+        trend_data = []
+        for key in sorted(risk_trend.keys()):
+            entry = risk_trend[key]
+            entry["avg_risk"] = round(entry["total_risk"] / entry["count"], 2) if entry["count"] > 0 else 0
+            del entry["total_risk"]
+            trend_data.append(entry)
+        
+        return {
+            "risk_trend": trend_data,
+            "time_range": time_range,
+            "total_alerts": len(alerts)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating analytics: {str(e)}")
+
+
+
 
