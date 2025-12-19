@@ -23,9 +23,7 @@ from datetime import datetime, timezone
 import requests
 
 
-# =============================================================================
 # SCENARIO DEFINITIONS
-# =============================================================================
 
 SCENARIOS = {
     "shadow_ai": {
@@ -107,10 +105,7 @@ SCENARIOS = {
     },
 }
 
-
-# =============================================================================
 # LOG SENDER
-# =============================================================================
 
 class LogSender:
     """Sends logs to the collector service."""
@@ -135,7 +130,6 @@ class LogSender:
             return False
 
     def health_check(self) -> bool:
-        """Check if collector is reachable."""
         try:
             health_url = self.collector_url.replace("/logs", "/health")
             response = self.session.get(health_url, timeout=5)
@@ -143,10 +137,7 @@ class LogSender:
         except requests.exceptions.RequestException:
             return False
 
-
-# =============================================================================
 # SCENARIO RUNNER
-# =============================================================================
 
 def run_scenario(scenario_type: str, sender: LogSender) -> bool:
     """Run a specific scenario."""
@@ -174,22 +165,22 @@ def run_scenario(scenario_type: str, sender: LogSender) -> bool:
         }
 
         print()
-        print(f"  [{i}/{total}] Sending log...")
-        print(f"       User: {log['user_id']}")
-        print(f"       Domain: {log['domain']}")
-        print(f"       URL: {log['url']}")
-        print(f"       Method: {log['method']}")
-        print(f"       Size: {log['upload_size_bytes']:,} bytes")
+        print(f"[{i}/{total}] Sending log...")
+        print(f"User: {log['user_id']}")
+        print(f"Domain: {log['domain']}")
+        print(f"URL: {log['url']}")
+        print(f"Method: {log['method']}")
+        print(f"Size: {log['upload_size_bytes']:,} bytes")
 
         if sender.send(log):
-            print("       Status: SENT")
+            print("Status: SENT")
             success_count += 1
         else:
-            print("       Status: FAILED")
+            print("Status: FAILED")
 
     print()
     print("-" * 60)
-    print(f"  Result: {success_count}/{total} logs sent successfully")
+    print(f"Result: {success_count}/{total} logs sent successfully")
     print("=" * 60)
 
     return success_count == total
@@ -216,10 +207,6 @@ def run_all_scenarios(sender: LogSender) -> None:
         print(f"  {status_icon} {scenario_type}")
     print("#" * 60)
 
-
-# =============================================================================
-# CLI
-# =============================================================================
 
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
