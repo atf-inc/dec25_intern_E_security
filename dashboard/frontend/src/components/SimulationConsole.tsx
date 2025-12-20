@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Terminal, AlertTriangle, Shield } from 'lucide-react';
+import { Terminal, AlertTriangle, Shield, Bell, FileText } from 'lucide-react';
 
 type SimulationType = 'shadow_ai' | 'data_leak' | 'false_positive';
 
@@ -12,6 +12,7 @@ interface LogEntry {
 export function SimulationConsole() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const simulateAttack = async (type: SimulationType) => {
     setIsRunning(true);
@@ -62,6 +63,11 @@ export function SimulationConsole() {
     }
 
     setIsRunning(false);
+  };
+
+  const testSlackAlert = () => {
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   return (
@@ -123,8 +129,7 @@ export function SimulationConsole() {
               >
                 {log.text}
               </motion.div>
-            ))
-          )}
+            ))}
           {isRunning && (
             <motion.div
               animate={{ opacity: [1, 0.5, 1] }}
@@ -135,7 +140,42 @@ export function SimulationConsole() {
             </motion.div>
           )}
         </div>
+
+        {/* Ghost Buttons */}
+        <div className="flex flex-wrap gap-3 mt-6 justify-center">
+          <button
+            onClick={testSlackAlert}
+            className="btn-ghost"
+          >
+            <Bell className="w-4 h-4" />
+            <span>Test Slack Alert</span>
+          </button>
+
+          <button
+            onClick={() => window.open('#', '_blank')}
+            className="btn-ghost"
+          >
+            <FileText className="w-4 h-4" />
+            <span>View Documentation</span>
+          </button>
+        </div>
       </motion.div>
+
+      {/* Toast Notification */}
+      {showToast && (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 50 }}
+          className="fixed bottom-8 right-8 bg-emerald-500 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 z-50"
+        >
+          <Bell className="w-5 h-5" />
+          <div>
+            <div className="font-semibold">Slack Alert Sent!</div>
+            <div className="text-sm text-emerald-100">Security team has been notified</div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
