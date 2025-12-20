@@ -4,113 +4,113 @@ export function HeroCircuitBackground() {
   return (
     <svg
       className="absolute inset-0 w-full h-full"
-      viewBox="0 0 1200 800"
+      viewBox="0 0 1200 600"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Left circuit lines */}
-      <g opacity="0.4">
+      {/* Compact circuit lines - bento grid style */}
+      <g opacity="0.5">
         {/* Top left line */}
         <path
-          d="M 100 200 L 400 200 L 500 250"
+          d="M 350 180 L 520 180 L 560 220"
           stroke="url(#circuit-gradient)"
-          strokeWidth="2"
-          strokeDasharray="4 4"
+          strokeWidth="1.5"
+          strokeDasharray="3 3"
         />
         {/* Bottom left line */}
         <path
-          d="M 150 400 L 450 400 L 500 350"
+          d="M 350 320 L 520 320 L 560 280"
           stroke="url(#circuit-gradient)"
-          strokeWidth="2"
-          strokeDasharray="4 4"
+          strokeWidth="1.5"
+          strokeDasharray="3 3"
         />
-      </g>
-
-      {/* Right circuit lines */}
-      <g opacity="0.4">
         {/* Top right line */}
         <path
-          d="M 1100 200 L 800 200 L 700 250"
+          d="M 850 180 L 680 180 L 640 220"
           stroke="url(#circuit-gradient)"
-          strokeWidth="2"
-          strokeDasharray="4 4"
+          strokeWidth="1.5"
+          strokeDasharray="3 3"
         />
         {/* Bottom right line */}
         <path
-          d="M 1050 400 L 750 400 L 700 350"
+          d="M 850 320 L 680 320 L 640 280"
           stroke="url(#circuit-gradient)"
-          strokeWidth="2"
-          strokeDasharray="4 4"
+          strokeWidth="1.5"
+          strokeDasharray="3 3"
         />
       </g>
 
-      {/* Pulsing signals - animated circles */}
+      {/* Pulsing signals - animated dots */}
       <motion.circle
-        cx="100"
-        cy="200"
-        r="4"
+        cx="350"
+        cy="180"
+        r="3"
         fill="#10b981"
-        initial={{ cx: 100, opacity: 0 }}
+        initial={{ cx: 350, opacity: 0 }}
         animate={{
-          cx: [100, 400, 500],
+          cx: [350, 520, 560],
+          cy: [180, 180, 220],
           opacity: [0, 1, 0],
         }}
         transition={{
-          duration: 3,
+          duration: 2.5,
           repeat: Infinity,
-          ease: "linear",
+          ease: "easeInOut",
           delay: 0,
         }}
       />
       <motion.circle
-        cx="150"
-        cy="400"
-        r="4"
+        cx="350"
+        cy="320"
+        r="3"
         fill="#10b981"
-        initial={{ cx: 150, opacity: 0 }}
+        initial={{ cx: 350, opacity: 0 }}
         animate={{
-          cx: [150, 450, 500],
+          cx: [350, 520, 560],
+          cy: [320, 320, 280],
           opacity: [0, 1, 0],
         }}
         transition={{
-          duration: 3,
+          duration: 2.5,
           repeat: Infinity,
-          ease: "linear",
-          delay: 1,
+          ease: "easeInOut",
+          delay: 0.8,
         }}
       />
       <motion.circle
-        cx="1100"
-        cy="200"
-        r="4"
+        cx="850"
+        cy="180"
+        r="3"
         fill="#10b981"
-        initial={{ cx: 1100, opacity: 0 }}
+        initial={{ cx: 850, opacity: 0 }}
         animate={{
-          cx: [1100, 800, 700],
+          cx: [850, 680, 640],
+          cy: [180, 180, 220],
           opacity: [0, 1, 0],
         }}
         transition={{
-          duration: 3,
+          duration: 2.5,
           repeat: Infinity,
-          ease: "linear",
-          delay: 0.5,
+          ease: "easeInOut",
+          delay: 0.4,
         }}
       />
       <motion.circle
-        cx="1050"
-        cy="400"
-        r="4"
+        cx="850"
+        cy="320"
+        r="3"
         fill="#10b981"
-        initial={{ cx: 1050, opacity: 0 }}
+        initial={{ cx: 850, opacity: 0 }}
         animate={{
-          cx: [1050, 750, 700],
+          cx: [850, 680, 640],
+          cy: [320, 320, 280],
           opacity: [0, 1, 0],
         }}
         transition={{
-          duration: 3,
+          duration: 2.5,
           repeat: Infinity,
-          ease: "linear",
-          delay: 1.5,
+          ease: "easeInOut",
+          delay: 1.2,
         }}
       />
 
@@ -118,7 +118,7 @@ export function HeroCircuitBackground() {
       <defs>
         <linearGradient id="circuit-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#374151" />
-          <stop offset="50%" stopColor="#10b981" stopOpacity="0.5" />
+          <stop offset="50%" stopColor="#10b981" stopOpacity="0.6" />
           <stop offset="100%" stopColor="#374151" />
         </linearGradient>
       </defs>
@@ -131,7 +131,7 @@ export function FloatingNode({ icon: Icon, position }: { icon: any; position: st
     <motion.div
       className={`absolute ${position} hidden lg:block`}
       animate={{
-        y: [0, -10, 0],
+        y: [0, -8, 0],
       }}
       transition={{
         duration: 3,
@@ -139,8 +139,8 @@ export function FloatingNode({ icon: Icon, position }: { icon: any; position: st
         ease: "easeInOut",
       }}
     >
-      <div className="w-16 h-16 rounded-xl bg-slate-800/60 backdrop-blur-md border border-emerald-500/20 flex items-center justify-center">
-        <Icon className="w-8 h-8 text-emerald-400/60" />
+      <div className="w-12 h-12 rounded-lg bg-slate-800/70 backdrop-blur-md border border-emerald-500/30 flex items-center justify-center shadow-lg">
+        <Icon className="w-6 h-6 text-emerald-400/70" />
       </div>
     </motion.div>
   );
