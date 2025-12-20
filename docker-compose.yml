@@ -48,6 +48,8 @@ services:
       dockerfile: Dockerfile
     container_name: shadowguard-worker
     restart: unless-stopped
+    ports: 
+      - "8000:8000"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
