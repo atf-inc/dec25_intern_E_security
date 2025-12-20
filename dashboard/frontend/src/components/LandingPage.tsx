@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
-import { Shield, Bot, Lock, Zap, Database, Bell, ArrowRight, Github, FileText, Users } from 'lucide-react';
+import { Shield, Bot, Lock, Zap, Database, Bell, ArrowRight, Github, FileText, Users, Server, HardDrive } from 'lucide-react';
 import { GlassCard } from './GlassCard';
-import { FloatingCard } from './FloatingCard';
 import { SimulationConsole } from './SimulationConsole';
+import { HeroCircuitBackground, FloatingNode } from './HeroCircuitBackground';
 
 export function LandingPage() {
   const scrollToSection = (id: string) => {
@@ -11,80 +11,122 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-6 py-20">
-        {/* Animated background gradient */}
-        <div className="absolute inset-0 bg-gradient-radial from-emerald-900/20 via-black to-black"></div>
+      {/* Hero Section - EqtyLab Style */}
+      <section className="relative min-h-screen flex items-center justify-center px-6 py-20 overflow-hidden">
+        {/* Dark gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-slate-950 to-black"></div>
         
-        {/* Floating decorative elements - moved to edges */}
-        <div className="absolute top-1/4 left-[5%] hidden lg:block">
-          <FloatingCard delay={0} duration={4}>
-            <div className="flex items-center gap-2">
-              <Bot className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-400 font-semibold">Shadow AI Detected</span>
-            </div>
-          </FloatingCard>
+        {/* Circuit lines background */}
+        <div className="absolute inset-0">
+          <HeroCircuitBackground />
         </div>
 
-        <div className="absolute top-1/3 right-[5%] hidden lg:block">
-          <FloatingCard delay={1} duration={5}>
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-400 font-semibold">Data Exfiltration Blocked</span>
-            </div>
-          </FloatingCard>
-        </div>
+        {/* Floating nodes at circuit endpoints */}
+        <FloatingNode icon={Database} position="top-[20%] left-[8%]" />
+        <FloatingNode icon={Lock} position="top-[45%] left-[12%]" />
+        <FloatingNode icon={Server} position="top-[20%] right-[8%]" />
+        <FloatingNode icon={HardDrive} position="top-[45%] right-[12%]" />
 
-        <div className="absolute bottom-1/3 left-[8%] hidden lg:block">
-          <FloatingCard delay={2} duration={4.5}>
-            <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-400 font-semibold">Compliance Verified</span>
+        {/* Central content */}
+        <div className="relative z-10 max-w-5xl mx-auto text-center">
+          {/* Central glowing chip */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1 }}
+            className="mb-16"
+          >
+            <div className="inline-block relative">
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-emerald-500/30 blur-3xl rounded-3xl"></div>
+              
+              {/* Chip container */}
+              <div className="relative w-32 h-32 mx-auto rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border-2 border-emerald-500/40 flex items-center justify-center shadow-2xl">
+                {/* Inner glow */}
+                <div className="absolute inset-2 bg-emerald-500/10 rounded-xl"></div>
+                
+                {/* Logo/Icon */}
+                <Shield className="w-16 h-16 text-emerald-400 relative z-10" strokeWidth={1.5} />
+                
+                {/* Corner accents */}
+                <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-emerald-500/60"></div>
+                <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-emerald-500/60"></div>
+                <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-emerald-500/60"></div>
+                <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-emerald-500/60"></div>
+                
+                {/* Pulsing ring */}
+                <motion.div
+                  className="absolute inset-0 rounded-2xl border-2 border-emerald-500/40"
+                  animate={{
+                    scale: [1, 1.1, 1],
+                    opacity: [0.4, 0, 0.4],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                ></motion.div>
+              </div>
             </div>
-          </FloatingCard>
-        </div>
+          </motion.div>
 
-        {/* Hero Content */}
-        <div className="relative z-10 max-w-5xl mx-auto text-center flex items-center justify-center min-h-screen">
+          {/* Typography */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="w-full"
+            transition={{ duration: 0.8, delay: 0.3 }}
           >
-            <div className="inline-block mb-8">
-              <span className="px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-sm font-medium">
-                Solutions
-              </span>
-            </div>
-
-            <h1 className="text-5xl md:text-7xl font-bold mb-10 leading-tight">
-              <span className="text-gray-200">Secure the</span>
-              <br />
-              <span className="hero-glow">Agentic AI Era</span>
+            <h1 className="text-6xl md:text-8xl font-bold mb-8 leading-tight tracking-tight">
+              Verify to Trust AI
             </h1>
 
-            <p className="text-xl md:text-2xl text-gray-400 mb-16 max-w-3xl mx-auto leading-relaxed">
-              Real-time detection of unauthorized GenAI, data leaks, and shadow SaaS usage in your corporate network.
+            <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
+              Introducing Verifiable Compute. Ready for the Agentic AI Era.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-              <button
-                onClick={() => scrollToSection('simulation')}
-                className="btn-primary group"
-              >
-                <span>Launch Simulation</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-              <button
-                onClick={() => scrollToSection('architecture')}
-                className="btn-secondary"
-              >
-                View Architecture
-              </button>
-            </div>
+            <button
+              onClick={() => scrollToSection('simulation')}
+              className="btn-primary group"
+            >
+              <span>Launch Simulation</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
           </motion.div>
+        </div>
+
+        {/* Curved horizon at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 overflow-hidden">
+          <svg
+            className="absolute bottom-0 w-full"
+            viewBox="0 0 1200 120"
+            preserveAspectRatio="none"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M 0 60 Q 300 20, 600 40 T 1200 60 L 1200 120 L 0 120 Z"
+              fill="url(#horizon-gradient)"
+              opacity="0.3"
+            />
+            <path
+              d="M 0 70 Q 300 30, 600 50 T 1200 70"
+              stroke="url(#horizon-stroke)"
+              strokeWidth="2"
+              fill="none"
+            />
+            <defs>
+              <linearGradient id="horizon-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
+                <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="horizon-stroke" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
+                <stop offset="50%" stopColor="#10b981" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#10b981" stopOpacity="0.3" />
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
 
         {/* Scroll indicator */}
