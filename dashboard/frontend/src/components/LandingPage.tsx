@@ -78,11 +78,11 @@ export function LandingPage() {
             transition={{ duration: 0.8, delay: 0.3 }}
           >
             <h1 className="text-6xl md:text-8xl font-bold mb-8 leading-tight tracking-tight">
-              Verify to Trust AI
+              Detect Shadow IT
             </h1>
 
             <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-              Introducing Verifiable Compute. Ready for the Agentic AI Era.
+              Real-time detection of unauthorized SaaS usage, Shadow AI, and file sharing in your corporate network.
             </p>
 
             <button
