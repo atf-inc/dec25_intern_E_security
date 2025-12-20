@@ -24,6 +24,7 @@ interface Alert {
 interface FilterState {
     riskLevel: string[];
     timeRange: string;
+    domainType: string[];
     category: string[];
 }
 
