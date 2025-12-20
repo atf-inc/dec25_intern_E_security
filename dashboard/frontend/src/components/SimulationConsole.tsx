@@ -129,7 +129,8 @@ export function SimulationConsole() {
               >
                 {log.text}
               </motion.div>
-            ))}
+            ))
+          )}
           {isRunning && (
             <motion.div
               animate={{ opacity: [1, 0.5, 1] }}
