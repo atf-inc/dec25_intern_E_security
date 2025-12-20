@@ -16,8 +16,8 @@ export function LandingPage() {
         {/* Animated background gradient */}
         <div className="absolute inset-0 bg-gradient-radial from-emerald-900/20 via-black to-black"></div>
         
-        {/* Floating decorative elements */}
-        <div className="absolute top-1/4 left-1/4 hidden lg:block">
+        {/* Floating decorative elements - moved to edges */}
+        <div className="absolute top-1/4 left-[5%] hidden lg:block">
           <FloatingCard delay={0} duration={4}>
             <div className="flex items-center gap-2">
               <Bot className="w-4 h-4 text-emerald-400" />
@@ -26,7 +26,7 @@ export function LandingPage() {
           </FloatingCard>
         </div>
 
-        <div className="absolute top-1/3 right-1/4 hidden lg:block">
+        <div className="absolute top-1/3 right-[5%] hidden lg:block">
           <FloatingCard delay={1} duration={5}>
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-emerald-400" />
@@ -35,7 +35,7 @@ export function LandingPage() {
           </FloatingCard>
         </div>
 
-        <div className="absolute bottom-1/3 left-1/3 hidden lg:block">
+        <div className="absolute bottom-1/3 left-[8%] hidden lg:block">
           <FloatingCard delay={2} duration={4.5}>
             <div className="flex items-center gap-2">
               <Lock className="w-4 h-4 text-emerald-400" />
@@ -45,29 +45,30 @@ export function LandingPage() {
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-5xl mx-auto text-center">
+        <div className="relative z-10 max-w-5xl mx-auto text-center flex items-center justify-center min-h-screen">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
+            className="w-full"
           >
-            <div className="inline-block mb-6">
+            <div className="inline-block mb-8">
               <span className="px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-sm font-medium">
                 Solutions
               </span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+            <h1 className="text-5xl md:text-7xl font-bold mb-10 leading-tight">
               <span className="text-gray-200">Secure the</span>
               <br />
               <span className="hero-glow">Agentic AI Era</span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl text-gray-400 mb-16 max-w-3xl mx-auto leading-relaxed">
               Real-time detection of unauthorized GenAI, data leaks, and shadow SaaS usage in your corporate network.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
               <button
                 onClick={() => scrollToSection('simulation')}
                 className="btn-primary group"
@@ -134,8 +135,8 @@ export function LandingPage() {
             {/* Threat List */}
             <div className="space-y-4">
               <GlassCard delay={0.1}>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                <div className="p-8">
+                  <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
                     <span className="text-red-400">›</span> Inserting Backdoors in AI Models
                   </h3>
                   <p className="text-gray-400">Malicious actors compromise model integrity</p>
@@ -143,8 +144,8 @@ export function LandingPage() {
               </GlassCard>
 
               <GlassCard delay={0.2}>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                <div className="p-8">
+                  <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
                     <span className="text-red-400">›</span> Extraction of AI Models and Data
                   </h3>
                   <p className="text-gray-400">Sensitive IP leaked through unapproved channels</p>
@@ -152,8 +153,8 @@ export function LandingPage() {
               </GlassCard>
 
               <GlassCard delay={0.3}>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                <div className="p-8">
+                  <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
                     <span className="text-red-400">›</span> Jailbreaks & Model DoS Attacks
                   </h3>
                   <p className="text-gray-400">Bypassing safety measures and overwhelming systems</p>
@@ -161,8 +162,8 @@ export function LandingPage() {
               </GlassCard>
 
               <GlassCard delay={0.4}>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                <div className="p-8">
+                  <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
                     <span className="text-red-400">›</span> Social Engineering & Misalignment
                   </h3>
                   <p className="text-gray-400">Manipulating AI outputs for malicious purposes</p>
