@@ -121,6 +121,11 @@
     @apply bg-white/10 border-emerald-500/50 -translate-y-0.5;
   }
 
+  /* Ghost Button */
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-gray-400 font-medium text-sm rounded-lg border border-transparent backdrop-blur-md transition-all duration-300 hover:text-emerald-400 hover:border-emerald-500/30;
+  }
+
   /* Simulation Buttons */
   .simulation-btn {
     @apply flex items-center justify-center gap-2 px-6 py-4 font-semibold rounded-xl border backdrop-blur-md transition-all duration-300 text-sm;
