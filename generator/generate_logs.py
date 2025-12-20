@@ -18,6 +18,7 @@ Usage:
 
 import argparse
 import sys
+import time
 from datetime import datetime, timezone
 
 import requests
@@ -139,8 +140,7 @@ class LogSender:
 
 # SCENARIO RUNNER
 
-def run_scenario(scenario_type: str, sender: LogSender) -> bool:
-    """Run a specific scenario."""
+def run_scenario(scenario_type: str, sender: LogSender, delay: float = 0) -> bool:
     if scenario_type not in SCENARIOS:
         print(f"[ERROR] Unknown scenario: {scenario_type}")
         return False
@@ -177,6 +177,11 @@ def run_scenario(scenario_type: str, sender: LogSender) -> bool:
             success_count += 1
         else:
             print("Status: FAILED")
+        
+        # Delay between logs if specified
+        if delay > 0 and i < total:
+            print(f"Waiting {delay}s before next log...")
+            time.sleep(delay)
 
     print()
     print("-" * 60)
@@ -186,7 +191,7 @@ def run_scenario(scenario_type: str, sender: LogSender) -> bool:
     return success_count == total
 
 
-def run_all_scenarios(sender: LogSender) -> None:
+def run_all_scenarios(sender: LogSender, delay: float = 0, scenario_delay: float = 0) -> None:
     """Run all scenarios sequentially."""
     print()
     print("#" * 60)
@@ -194,9 +199,16 @@ def run_all_scenarios(sender: LogSender) -> None:
     print("#" * 60)
 
     results = {}
-    for scenario_type in SCENARIOS:
-        success = run_scenario(scenario_type, sender)
+    scenario_list = list(SCENARIOS.keys())
+    for idx, scenario_type in enumerate(scenario_list):
+        success = run_scenario(scenario_type, sender, delay)
         results[scenario_type] = "PASS" if success else "FAIL"
+        
+        # Delay between scenarios if specified
+        if scenario_delay > 0 and idx < len(scenario_list) - 1:
+            print()
+            print(f"⏳ Waiting {scenario_delay}s before next scenario...")
+            time.sleep(scenario_delay)
 
     print()
     print("#" * 60)
@@ -247,6 +259,20 @@ Examples:
         action="store_true",
         help="Preview logs without sending",
     )
+    
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=0,
+        help="Delay in seconds between individual logs (default: 0)",
+    )
+    
+    parser.add_argument(
+        "--scenario-delay",
+        type=float,
+        default=0,
+        help="Delay in seconds between scenarios when running 'all' (default: 0)",
+    )
 
     return parser.parse_args()
 
@@ -289,9 +315,9 @@ def main() -> int:
 
     # Run scenario(s)
     if args.type == "all":
-        run_all_scenarios(sender)
+        run_all_scenarios(sender, args.delay, args.scenario_delay)
     else:
-        run_scenario(args.type, sender)
+        run_scenario(args.type, sender, args.delay)
 
     print()
     return 0
