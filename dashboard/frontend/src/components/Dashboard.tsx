@@ -24,6 +24,7 @@ interface Alert {
 interface FilterState {
     riskLevel: string[];
     timeRange: string;
+    domainType: string[];
     category: string[];
 }
 
@@ -264,7 +265,10 @@ export const Dashboard: React.FC = () => {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up delay-100">
                         {stats.map((stat, i) => (
-                            <div key={i} className="glass-card p-5 rounded-2xl">
+                            <div key={i} className="glass-card p-5 rounded-2xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <stat.icon className={`w-16 h-16 ${stat.color}`} />
+                                </div>
                                 <div className="flex items-start justify-between mb-4">
                                     <div className={`p-2 rounded-lg bg-slate-900/50 border border-slate-800 ${stat.color}`}>
                                         <stat.icon className="w-5 h-5" />
@@ -275,7 +279,7 @@ export const Dashboard: React.FC = () => {
                                         {stat.trend}
                                     </span>
                                 </div>
-                                <div>
+                                <div className="relative z-10">
                                     <h3 className="text-3xl font-bold text-white mb-1">{stat.value}</h3>
                                     <p className="text-sm text-slate-400">{stat.label}</p>
                                 </div>
