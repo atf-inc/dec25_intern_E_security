@@ -52,13 +52,73 @@ def test_health():
 
 
 if __name__ == "__main__":
+    import sys
+    
     print("=" * 50)
-    print("EMBEDDING API TEST")
+    print("EMBEDDING API TEST SUITE")
     print("=" * 50)
     print(f"API URL: {EMBEDDING_API_URL}")
     
-    test_health()
-    test_embedding()
+    results = []
+    results.append(("Health Check", test_health()))
+    results.append(("Embedding", test_embedding()))
+    results.append(("Latency", test_latency()))
+    
+    # Print summary
+    print("\n" + "=" * 50)
+    print("TEST SUMMARY")
+    print("=" * 50)
+    
+    all_passed = True
+    for name, passed in results:
+        status = "✅ PASS" if passed else "❌ FAIL"
+        print(f"  {name}: {status}")
+        if not passed:
+            all_passed = False
+    
+    print("\n" + ("All tests passed!" if all_passed else "Some tests failed!"))
+    sys.exit(0 if all_passed else 1)
+
+
+def test_latency():
+    """Measure average latency over multiple requests."""
+    print("\n[TEST] Latency Benchmark (5 requests)")
+    print("-" * 40)
+    
+    import time
+    test_texts = [
+        "dropbox file sharing",
+        "google drive storage",
+        "anonymous proxy vpn",
+        "slack communication",
+        "notion productivity"
+    ]
+    
+    latencies = []
+    for i, text in enumerate(test_texts):
+        try:
+            start = time.time()
+            res = requests.post(
+                EMBEDDING_API_URL,
+                params={"text": text},
+                timeout=30
+            )
+            elapsed = (time.time() - start) * 1000
+            latencies.append(elapsed)
+            print(f"  [{i+1}] '{text}' → {elapsed:.0f}ms")
+        except Exception as e:
+            print(f"  [{i+1}] ❌ Failed: {e}")
+    
+    if latencies:
+        avg = sum(latencies) / len(latencies)
+        print(f"\n  Average latency: {avg:.0f}ms")
+        if avg < 1500:
+            print("  ✅ Latency benchmark PASSED")
+            return True
+        else:
+            print("  ⚠️ WARNING: Latency higher than expected")
+            return False
+    return False
 
 
 def test_embedding():
