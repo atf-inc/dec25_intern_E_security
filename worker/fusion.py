@@ -178,7 +178,7 @@ class FusionEngine:
         """
         # Import here to avoid circular dependency
         try:
-            from semantic import OpenRouterSimilarityDetector
+            from worker.semantic import OpenRouterSimilarityDetector
             return OpenRouterSimilarityDetector.is_content_consumption(domain, url)
         except ImportError:
             # Fallback to basic check
