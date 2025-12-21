@@ -80,7 +80,12 @@ class FusionEngine:
         """
         Check if domain is in whitelist or blacklist.
         
-        Returns override score if found, None otherwise.
+        Returns:
+            Dict with keys: override, final_risk, risk_level, reason
+            - override: True if domain matched a list, False otherwise
+            - final_risk: Risk score (0.0 for whitelist, 1.0 for blacklist, None if no match)
+            - risk_level: "SAFE", "CRITICAL", or "UNKNOWN" if no match
+            - reason: Explanation string
         """
         # Normalize the input domain
         clean_domain = self._normalize_domain(domain)
@@ -112,7 +117,13 @@ class FusionEngine:
                 "reason": "Domain is blacklisted"
             }
         
-        return {"override": False}
+        # No match - return consistent structure
+        return {
+            "override": False,
+            "final_risk": None,
+            "risk_level": "UNKNOWN",
+            "reason": ""
+        }
 
     def _calculate_risk_level(self, score: float) -> str:
         """
