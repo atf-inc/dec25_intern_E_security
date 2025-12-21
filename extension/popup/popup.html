@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShadowGuard AI</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🛡️ ShadowGuard AI</h1>
+      <div class="status-indicator">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Checking...</span>
+      </div>
+    </div>
+    
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="totalLogs">0</div>
+        <div class="stat-label">Captured</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="sentLogs">0</div>
+        <div class="stat-label">Sent</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="queuedLogs">0</div>
+        <div class="stat-label">Queued</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="failedLogs">0</div>
+        <div class="stat-label">Failed</div>
+      </div>
+    </div>
+    
+    <div class="info-section">
+      <div class="info-row">
+        <span class="info-label">User:</span>
+        <span class="info-value" id="userEmail">Not configured</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Collector:</span>
+        <span class="info-value small" id="collectorUrl">Not configured</span>
+      </div>
+    </div>
+    
+    <div class="actions">
+      <button id="toggleBtn" class="btn-primary">
+        <span id="toggleIcon">●</span>
+        <span id="toggleText">Disable</span>
+      </button>
+      <button id="sendNowBtn" class="btn-secondary">
+        📤 Send Now
+      </button>
+    </div>
+    
+    <div class="actions">
+      <button id="optionsBtn" class="btn-link">⚙️ Settings</button>
+      <button id="refreshBtn" class="btn-link">🔄 Refresh</button>
+    </div>
+    
+    <div class="footer">
+      <p class="privacy-note">
+        ℹ️ Passive monitoring only. No content captured.
+      </p>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
