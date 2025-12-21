@@ -86,27 +86,33 @@ class OpenRouterSimilarityDetector:
     # ---------------- EMBEDDINGS ----------------
 
     def _get_embedding(self, texts: List[str]) -> np.ndarray:
-        if not self.api_key:
-            raise ValueError("OPENROUTER_API_KEY is missing")
-
-        response = requests.post(
-            "https://openrouter.ai/api/v1/embeddings",
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "thenlper/gte-base",
-                "input": texts
-            },
-            timeout=30
-        )
-
-        if response.status_code != 200:
-            raise RuntimeError(response.text)
-
-        data = response.json()["data"]
-        return np.array([d["embedding"] for d in data])
+        """Get embeddings from the self-hosted embedding model.
+        
+        Requires EMBEDDING_API_URL environment variable to be set.
+        See .env.example for configuration.
+        """
+        embedding_api_url = os.getenv("EMBEDDING_API_URL")
+        if not embedding_api_url:
+            raise ValueError(
+                "EMBEDDING_API_URL is not set. "
+                "Please set it in your .env file. See .env.example"
+            )
+        
+        embeddings = []
+        for text in texts:
+            response = requests.post(
+                embedding_api_url,
+                params={"text": text},
+                timeout=30
+            )
+            
+            if response.status_code != 200:
+                raise RuntimeError(f"Embedding API error: {response.text}")
+            
+            embedding = response.json()
+            embeddings.append(embedding)
+        
+        return np.array(embeddings)
 
     def _get_embedding_with_retry(self, texts: List[str]) -> np.ndarray:
         for i in range(self.max_retries):
