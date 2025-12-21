@@ -169,6 +169,13 @@ class FusionEngine:
             
         Returns:
             Risk multiplier (0.3 for GET, 1.0 for POST, etc.)
+            
+        Rationale:
+            - GET (0.3): Read-only operations have minimal data exposure risk
+            - POST (1.0): Baseline for data submission/upload operations
+            - PUT (1.2): Updates/uploads, slightly elevated risk
+            - DELETE (0.5): Data removal has lower exposure risk than uploads,
+              but higher than reads (could indicate data exfiltration prep)
         """
         multipliers = {
             "GET": 0.3,    # Read-only, 70% risk reduction
@@ -185,13 +192,16 @@ class FusionEngine:
         
         Args:
             method: HTTP method
-            size_bytes: Upload size in bytes
+            size_bytes: Upload size in bytes (can be None)
             
         Returns:
             Risk multiplier (1.0 to 2.0)
         """
         if method.upper() not in ["POST", "PUT"]:
             return 1.0
+        
+        # Defensive check: handle None or invalid size_bytes
+        size_bytes = size_bytes or 0
         
         size_mb = size_bytes / (1024 * 1024)
         
