@@ -22,18 +22,18 @@ class FusionEngine:
         self,
         behavior_weight: float = 0.3,
         semantic_weight: float = 0.7,
-        blacklist_path: str = "../config/blacklist.json",
-        whitelist_path: str = "../config/whitelist.json"
+        blacklist_path: str = None,
+        whitelist_path: str = None
     ):
         """
         Initialize the fusion engine.
-        
-        Args:
-            behavior_weight: Weight for behavior score (0-1)
-            semantic_weight: Weight for semantic score (0-1)
-            blacklist_path: Path to blacklist domains
-            whitelist_path: Path to whitelist domains
         """
+        # Resolve paths relative to the file if not provided
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        if blacklist_path is None:
+            blacklist_path = os.path.join(script_dir, "..", "config", "blacklist.json")
+        if whitelist_path is None:
+            whitelist_path = os.path.join(script_dir, "..", "config", "whitelist.json")
         # Normalize weights to sum to 1.0
         total = behavior_weight + semantic_weight
         self.behavior_weight = behavior_weight / total
@@ -58,14 +58,44 @@ class FusionEngine:
             print(f"⚠ Warning: Could not load {path}: {e}")
             return []
     
+    def _normalize_domain(self, domain: str) -> str:
+        """
+        Normalize domain by removing protocol and www prefix.
+        """
+        domain = domain.lower().strip()
+        
+        # Remove protocol
+        if domain.startswith("http://"):
+            domain = domain[7:]
+        elif domain.startswith("https://"):
+            domain = domain[8:]
+            
+        # Remove www prefix
+        if domain.startswith("www."):
+            domain = domain[4:]
+            
+        return domain.split("/")[0]  # Remove any path components
+
     def _check_explicit_lists(self, domain: str) -> Dict[str, Any]:
         """
         Check if domain is in whitelist or blacklist.
         
         Returns override score if found, None otherwise.
         """
+        # Normalize the input domain
+        clean_domain = self._normalize_domain(domain)
+        
+        # Helper to check if domain matches any in list (exact or subdomain)
+        def is_match(target_domain: str, domain_list: List[str]) -> bool:
+            for item in domain_list:
+                item = self._normalize_domain(item)
+                # Exact match or subdomain match (e.g., "drive.google.com" ends with "google.com")
+                if target_domain == item or target_domain.endswith("." + item):
+                    return True
+            return False
+
         # Whitelist takes precedence
-        if domain in self.whitelist:
+        if is_match(clean_domain, self.whitelist):
             return {
                 "override": True,
                 "final_risk": 0.0,
@@ -74,7 +104,7 @@ class FusionEngine:
             }
         
         # Blacklist
-        if domain in self.blacklist:
+        if is_match(clean_domain, self.blacklist):
             return {
                 "override": True,
                 "final_risk": 1.0,
@@ -165,23 +195,15 @@ class FusionEngine:
     def _is_content_consumption(self, domain: str, url: str) -> bool:
         """
         Quick check for content consumption patterns.
-        
-        Args:
-            domain: Domain name
-            url: URL path
-            
-        Returns:
-            True if content consumption detected
         """
-        # Import here to avoid circular dependency
+        # Rely on the Semantic Engine's precise logic
         try:
             from .semantic import OpenRouterSimilarityDetector
             return OpenRouterSimilarityDetector.is_content_consumption(domain, url)
-        except (ImportError, ValueError):
-            # Fallback to basic check if import fails
-            PATTERNS = ["news", "docs", "wiki", "stackoverflow", "search"]
-            combined = (domain + url).lower()
-            return any(p in combined for p in PATTERNS)
+        except (ImportError, ValueError, AttributeError):
+            # Very basic fallback that only matches known top search/info domains
+            safe_roots = ["google.com", "bing.com", "wikipedia.org", "nytimes.com"]
+            return any(domain.lower().endswith(d) for d in safe_roots)
     
     def fuse(
         self,
@@ -488,14 +510,23 @@ def test_fusion():
         
         # Get semantic analysis
         print("🧠 Semantic Analysis:")
-        semantic_result = semantic.analyze(domain)
+        url = "/dummy/test/path"
+        semantic_result = semantic.analyze(domain, url)
         print(f"   Risk Score: {semantic_result['risk_score']:.2f}")
         print(f"   Top Category: {semantic_result['top_category']}")
-        print(f"   Explanation: {semantic_result['explanation']}\n")
+        print(f"   Explanation: {semantic_result['explanation']}\\n")
         
         # Fuse the results
         print("⚡ Fusion Result:")
-        fused = fusion.fuse(domain, user_id, behavior_result, semantic_result)
+        fused = fusion.fuse(
+            domain=domain, 
+            user_id=user_id, 
+            url=url, 
+            method="POST", 
+            upload_size_bytes=1024, 
+            behavior_result=behavior_result, 
+            semantic_result=semantic_result
+        )
         
         print(f"   Final Score: {fused['final_risk_score']:.3f}")
         print(f"   Risk Level: {fused['risk_level']}")
