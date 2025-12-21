@@ -221,14 +221,17 @@ class FusionEngine:
         """
         Quick check for content consumption patterns.
         """
+        # Normalize domain first (remove protocol, www, port, path)
+        clean_domain = self._normalize_domain(domain)
+        
         # Rely on the Semantic Engine's precise logic
         try:
             from worker.semantic import OpenRouterSimilarityDetector
-            return OpenRouterSimilarityDetector.is_content_consumption(domain, url)
+            return OpenRouterSimilarityDetector.is_content_consumption(clean_domain, url)
         except (ImportError, ValueError, AttributeError):
             # Very basic fallback that only matches known top search/info domains
             safe_roots = ["google.com", "bing.com", "wikipedia.org", "nytimes.com"]
-            return any(domain.lower().endswith(d) for d in safe_roots)
+            return any(clean_domain.endswith(d) for d in safe_roots)
     
     def fuse(
         self,
