@@ -237,6 +237,10 @@ class OpenRouterSimilarityDetector:
         Returns:
             Tuple of (risk_score, explanation, category_type)
         """
+        # Guard against empty sims dict - prevents ValueError from max()
+        if not sims:
+            return 0.4, "No similarity data available", "unknown"
+        
         top_cat = max(sims, key=sims.get)
         score = sims[top_cat]
         
@@ -296,9 +300,10 @@ class OpenRouterSimilarityDetector:
         """
         Analyze domain risk using semantic similarity.
         """
-        # 1. Check result cache
-        if domain in self._result_cache:
-            return self._result_cache[domain]
+        # 1. Check result cache (include URL in key since content_consumption depends on it)
+        cache_key = f"{domain.lower()}|{url.lower()}"
+        if cache_key in self._result_cache:
+            return self._result_cache[cache_key]
 
         # 2. Check for content consumption first (fast path)
         # Calling as static method to be consistent with decorator
@@ -336,8 +341,8 @@ class OpenRouterSimilarityDetector:
             "explanation": reason
         }
         
-        # Save to result cache for instant reuse
-        self._result_cache[domain] = result
+        # Save to result cache for instant reuse (keyed by domain+url)
+        self._result_cache[cache_key] = result
         return result
 
 
