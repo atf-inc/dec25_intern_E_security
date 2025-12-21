@@ -34,10 +34,14 @@ class FusionEngine:
             blacklist_path = os.path.join(script_dir, "..", "config", "blacklist.json")
         if whitelist_path is None:
             whitelist_path = os.path.join(script_dir, "..", "config", "whitelist.json")
-        # Normalize weights to sum to 1.0
+        # Normalize weights to sum to 1.0 (guard against division by zero)
         total = behavior_weight + semantic_weight
-        self.behavior_weight = behavior_weight / total
-        self.semantic_weight = semantic_weight / total
+        if total <= 0:
+            self.behavior_weight = 0.5
+            self.semantic_weight = 0.5
+        else:
+            self.behavior_weight = behavior_weight / total
+            self.semantic_weight = semantic_weight / total
         
         # Load blacklist and whitelist
         self.blacklist = self._load_json(blacklist_path)
