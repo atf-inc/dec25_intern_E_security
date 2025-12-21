@@ -29,8 +29,10 @@ docker-compose up --build
 | Collector | Log ingestion service |
 | Worker | Detection engine + writes alerts to Redis |
 | Dashboard API | FastAPI backend |
+| Slack Notifier | Worker integration for real-time alerts |
 
 Backend API is available at: `http://localhost:8001/api/alerts`
+Collector endpoint is: `http://localhost:8000/logs`
 
 ---
 
@@ -48,19 +50,24 @@ Open the URL printed by Vite (typically `http://localhost:3000` or `http://local
 
 ---
 
-### Sending Test Logs (Generator)
+### 🛡️ Browser Extension (Real Traffic)
 
-#### Option A: Generator in Docker Compose
-If the generator is included in `docker-compose.yml`, it starts automatically. Watch logs in Terminal 1.
+The preferred way to send logs in this branch is using the **ShadowGuard AI Browser Extension**.
 
-#### Option B: Generator on Host
-Run the generator manually, targeting the Collector via the Nginx gateway:
+1. Navigate to `chrome://extensions/`.
+2. Load the `extension/` folder as an unpacked extension.
+3. Configure settings with your Collector URL: `http://localhost:8000/logs`.
+4. See `extension/README.md` for full details.
 
+### 🧪 Synthetic Logs (Generator)
+
+The synthetic generator is disabled by default in `docker-compose.yml` to favor real extension logs.
+
+To run it manually on your host:
 ```bash
 python generator/generate_logs.py
 ```
-
-The generator sends logs to: `http://localhost:3000/collect/logs`
+The generator sends logs to: `http://localhost:8000/logs`
 
 ---
 

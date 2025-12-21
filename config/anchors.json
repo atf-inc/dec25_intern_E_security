@@ -1,27 +1,87 @@
 {
-  "generative_ai": [
-    "AI chatbot interface",
-    "write an essay",
-    "large language model prompt",
-    "generate images",
+  "generative_ai_chatbots": [
+    "chatgpt.com",
     "chat.openai.com",
-    "bard.google.com",
+    "gemini.google.com",
     "claude.ai",
     "perplexity.ai",
-    "midjourney.com"
+    "you.com",
+    "poe.com"
   ],
-  "file_storage": [
+  "media_content_creation": [
+    "creativex.com",
+    "stability.ai",
+    "stabilityai.com",
+    "midjourney.com",
+    "leonardo.ai",
+    "firefly.adobe.com",
+    "dalle.openai.com",
+    "canva.com",
+    "figma.com"
+  ],
+  "transcription_productivity": [
+    "otter.ai",
+    "happytalk.io",
+    "tldv.io",
+    "fireflies.ai",
+    "grain.com",
+    "read.ai",
+    "sembly.ai"
+  ],
+  "coding_assistants": [
+    "cursor.sh",
+    "codeium.com",
+    "tabnine.com",
+    "github.com/features/copilot",
+    "blackbox.ai",
+    "phind.com",
+    "replit.com"
+  ],
+  "unapproved_cloud_storage": [
     "dropbox.com",
     "drive.google.com",
     "onedrive.live.com",
     "box.com",
-    "icloud.com"
+    "sync.com",
+    "icedrive.net",
+    "pcloud.com"
   ],
-  "anonymous_services": [
+  "messaging_collaboration": [
+    "web.whatsapp.com",
+    "signal.org",
+    "slack.com",
+    "trello.com",
+    "asana.com",
+    "notion.so",
+    "monday.com",
+    "airtable.com",
+    "miro.com"
+  ],
+  "consumer_saas_tools": [
+    "mailchimp.com",
+    "smallpdf.com",
+    "ilovepdf.com",
+    "tinypng.com",
+    "convertio.co",
+    "remove.bg",
+    "grammarly.com",
+    "quillbot.com"
+  ],
+  "file_transfer_anonymous": [
+    "wetransfer.com",
+    "mega.nz",
+    "anonfiles.com",
+    "mediafire.com",
+    "sendspace.com",
+    "file.io",
+    "gofile.io",
+    "pixeldrain.com"
+  ],
+  "anonymous_communication": [
     "protonmail.com",
     "tutanota.com",
     "guerrillamail.com",
-    "tempmail.com",
-    "hide.me"
+    "tempmail.io",
+    "10minutemail.com"
   ]
 }

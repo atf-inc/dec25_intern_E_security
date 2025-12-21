@@ -13,6 +13,27 @@ except ImportError:
     pass
 
 
+# Content consumption patterns (no embeddings needed)
+INFORMATIONAL_DOMAINS = [
+    "nytimes.com", "wsj.com", "reuters.com", "bloomberg.com", "cnn.com", "bbc.com",
+    "theguardian.com", "forbes.com", "economist.com", "techcrunch.com", "theverge.com",
+    "wikipedia.org", "britannica.com", "dictionary.com", "thesaurus.com",
+    "stackoverflow.com", "stackexchange.com", "reddit.com", "medium.com", "dev.to", "hashnode.com",
+    "github.com", "gitlab.com", "readthedocs.io", "gitbook.com",
+    "google.com", "bing.com", "duckduckgo.com", "yahoo.com"
+]
+
+# Path-based informational markers (leading slash prevents matching inside other words)
+INFORMATIONAL_PATH_PATTERNS = [
+    "/docs", "/wiki", "/manual", "/guide", "/tutorial", "/documentation",
+    "/help", "/support", "/faq", "/legal", "/privacy", "/terms"
+]
+
+SEARCH_PATTERNS = [
+    "/search", "/q/", "?q=", "?query=", "?search=", "&q="
+]
+
+
 class OpenRouterSimilarityDetector:
     def __init__(
         self,
@@ -29,6 +50,7 @@ class OpenRouterSimilarityDetector:
 
         self.embedding_cache_path = "embedding_cache.json"
         self.offline_mode = False
+        self._result_cache = {}  # NEW: Domain-level analysis cache
 
         if self.cache_embeddings:
             self._load_embedding_cache()
@@ -157,18 +179,36 @@ class OpenRouterSimilarityDetector:
     # ---------------- OFFLINE MODE ----------------
 
     def _setup_offline_embeddings(self):
-        self.offline_keywords = {
-            "generative_ai": ["ai", "gpt", "chat", "claude", "bard"],
-            "file_storage": ["drive", "dropbox", "box", "icloud"],
-            "anonymous_services": ["proton", "tutanota", "temp", "hide"]
-        }
+        # Deprecated: We now use anchors.json directly
+        pass
 
     def _compute_similarities_offline(self, domain: str) -> Dict[str, float]:
+        """
+        Compute similarity scores using exact/suffix matching against anchors.
+        """
         sims = {}
-        d = domain.lower()
+        domain = domain.lower().strip()
+        
+        # Normalize domain (remove protocol/www)
+        if domain.startswith("http://"):
+            domain = domain[7:]
+        elif domain.startswith("https://"):
+            domain = domain[8:]
+        if domain.startswith("www."):
+            domain = domain[4:]
+        domain = domain.split("/")[0]
 
-        for cat, keys in self.offline_keywords.items():
-            sims[cat] = 0.8 if any(k in d for k in keys) else 0.1
+        for category, domains in self.categories.items():
+            # Check for match in this category
+            is_match = False
+            for d in domains:
+                d = d.lower().strip()
+                if domain == d or domain.endswith("." + d):
+                    is_match = True
+                    break
+            
+            # High score for match, low for non-match
+            sims[category] = 0.95 if is_match else 0.05
 
         return sims
 
@@ -190,22 +230,89 @@ class OpenRouterSimilarityDetector:
 
     # ---------------- RISK LOGIC ----------------
 
-    def _calculate_risk_score(self, sims: Dict[str, float]) -> Tuple[float, str]:
+    def _calculate_risk_score(self, sims: Dict[str, float]) -> Tuple[float, str, str]:
+        """
+        Calculate risk score from similarities.
+        
+        Returns:
+            Tuple of (risk_score, explanation, category_type)
+        """
         top_cat = max(sims, key=sims.get)
         score = sims[top_cat]
-
-        if top_cat == "generative_ai":
-            return 0.9, f"High-confidence AI service ({score:.2f})"
-        if top_cat == "anonymous_services":
-            return 0.6, f"Anonymous service ({score:.2f})"
-        if top_cat == "file_storage":
-            return 0.2, f"File storage ({score:.2f})"
-
-        return 0.3, "Unknown"
+        
+        # Map categories to risk levels and types (Aligned with anchors.json)
+        category_mapping = {
+            "generative_ai_chatbots": (0.8, "Generative AI chatbot", "ai_tool"),
+            "media_content_creation": (0.6, "Content creation tool", "creative_tool"),
+            "transcription_productivity": (0.7, "Transcription/productivity service", "productivity"),
+            "coding_assistants": (0.7, "Coding assistant", "dev_tool"),
+            "unapproved_cloud_storage": (0.7, "Unapproved cloud storage", "file_storage"),
+            "messaging_collaboration": (0.6, "Messaging/collaboration tool", "collaboration"),
+            "consumer_saas_tools": (0.5, "Consumer SaaS tool", "saas"),
+            "file_transfer_anonymous": (0.9, "Anonymous file transfer", "file_transfer"),
+            "anonymous_communication": (0.8, "Anonymous communication service", "anonymous")
+        }
+        
+        if top_cat in category_mapping:
+            risk, desc, cat_type = category_mapping[top_cat]
+            return risk, f"{desc} (similarity: {score:.2f})", cat_type
+        
+        return 0.4, f"Unknown category (similarity: {score:.2f})", "unknown"
 
     # ---------------- PUBLIC API ----------------
+    
+    @staticmethod
+    def is_content_consumption(domain: str, url: str = "") -> bool:
+        """
+        Detect if domain/URL represents content consumption (news, docs, search)
+        using precise domain matching and path patterns.
+        """
+        if not domain:
+            return False
+            
+        lower_domain = domain.lower()
+        
+        # 1. Exact or subdomain match for trusted informational domains
+        if any(lower_domain == d or lower_domain.endswith("." + d) for d in INFORMATIONAL_DOMAINS):
+            return True
+        
+        # Early exit for path/search checks if no URL is provided
+        if not url:
+            return False
+            
+        lower_url = url.lower()
+            
+        # 2. Check for search patterns in the URL path/query
+        if any(pattern in lower_url for pattern in SEARCH_PATTERNS):
+            return True
+            
+        # 3. Check for specific informational path markers
+        if any(pattern in lower_url for pattern in INFORMATIONAL_PATH_PATTERNS):
+            return True
+            
+        return False
 
-    def analyze(self, domain: str) -> Dict[str, Any]:
+    def analyze(self, domain: str, url: str = "") -> Dict[str, Any]:
+        """
+        Analyze domain risk using semantic similarity.
+        """
+        # 1. Check result cache
+        if domain in self._result_cache:
+            return self._result_cache[domain]
+
+        # 2. Check for content consumption first (fast path)
+        # Calling as static method to be consistent with decorator
+        if OpenRouterSimilarityDetector.is_content_consumption(domain, url):
+            return {
+                "domain": domain,
+                "risk_score": 0.1,
+                "top_category": "content_consumption",
+                "category_type": "informational",
+                "similarities": {},
+                "explanation": "Content consumption domain (news/docs/search)"
+            }
+        
+        # Perform semantic analysis
         if self.offline_mode:
             sims = self._compute_similarities_offline(domain)
         else:
@@ -218,15 +325,20 @@ class OpenRouterSimilarityDetector:
                 print(f"⚠ Embedding failed for '{domain}', using offline mode: {e}")
                 sims = self._compute_similarities_offline(domain)
 
-        risk, reason = self._calculate_risk_score(sims)
+        risk, reason, cat_type = self._calculate_risk_score(sims)
 
-        return {
+        result = {
             "domain": domain,
             "risk_score": risk,
-            "top_category": max(sims, key=sims.get),
+            "top_category": max(sims, key=sims.get) if sims else "unknown",
+            "category_type": cat_type,
             "similarities": sims,
             "explanation": reason
         }
+        
+        # Save to result cache for instant reuse
+        self._result_cache[domain] = result
+        return result
 
 
 # ---------------- TEST ----------------
@@ -241,18 +353,20 @@ def test_detector():
     ]
 
     for domain in test_domains:
-        result = detector.analyze(domain)
+        url = "/test/path"
+        result = detector.analyze(domain, url)
 
         print("\n" + "=" * 50)
         print(f"Domain        : {result['domain']}")
+        print(f"URL           : {url}")
         print(f"Top Category  : {result['top_category']}")
-        print(f"Risk Score   : {result['risk_score']}")
-        print("Similarities :")
+        print(f"Risk Score    : {result['risk_score']:.2f}")
+        print("Similarities  :")
 
         for cat, sim in result["similarities"].items():
             print(f"  - {cat:20s}: {sim:.2f}")
 
-        print(f"Explanation  : {result['explanation']}")
+        print(f"Explanation   : {result['explanation']}")
 
 
 
