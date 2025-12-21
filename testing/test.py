@@ -58,3 +58,41 @@ if __name__ == "__main__":
     print(f"API URL: {EMBEDDING_API_URL}")
     
     test_health()
+    test_embedding()
+
+
+def test_embedding():
+    """Test embedding generation."""
+    print("\n[TEST] Embedding Generation")
+    print("-" * 40)
+    
+    test_text = "chatgpt openai artificial intelligence"
+    
+    try:
+        import time
+        start = time.time()
+        res = requests.post(
+            EMBEDDING_API_URL,
+            params={"text": test_text},
+            timeout=30
+        )
+        elapsed = (time.time() - start) * 1000
+        
+        res.raise_for_status()
+        embedding = res.json()
+        
+        print(f"  Input: '{test_text}'")
+        print(f"  Response time: {elapsed:.0f}ms")
+        print(f"  Embedding length: {len(embedding)}")
+        print(f"  First 5 values: {embedding[:5]}")
+        
+        if len(embedding) == 1024:
+            print("  ✅ Embedding generation PASSED")
+            return True
+        else:
+            print(f"  ⚠️ WARNING: Expected 1024 dims, got {len(embedding)}")
+            return False
+            
+    except Exception as e:
+        print(f"  ❌ FAILED: {e}")
+        return False
