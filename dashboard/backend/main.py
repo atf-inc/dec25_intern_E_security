@@ -1,5 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Optional, List
+from datetime import datetime, timedelta
 import redis
 import json
 from config import settings
@@ -75,3 +77,322 @@ async def get_alerts(limit: int = 50, offset: int = 0):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching alerts: {str(e)}")
+
+
+# Helper function to get all alerts from Redis
+def _get_all_alerts() -> List[dict]:
+    """Fetch all alerts from Redis and parse them."""
+    if not redis_client:
+        return []
+    try:
+        raw_alerts = redis_client.lrange("alerts", 0, -1)
+        alerts = []
+        for alert_str in raw_alerts:
+            try:
+                alerts.append(json.loads(alert_str))
+            except json.JSONDecodeError:
+                continue
+        return alerts
+    except Exception:
+        return []
+
+
+@app.get("/api/stats")
+async def get_stats(time_range: str = Query("all", regex="^(24h|7d|30d|all)$")):
+    """Get dashboard statistics with optional time-range filter."""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis service unavailable")
+    
+    try:
+        alerts = _get_all_alerts()
+        
+        # Apply time filter
+        if time_range != "all":
+            now = datetime.utcnow()
+            if time_range == "24h":
+                cutoff = now - timedelta(hours=24)
+            elif time_range == "7d":
+                cutoff = now - timedelta(days=7)
+            elif time_range == "30d":
+                cutoff = now - timedelta(days=30)
+            else:
+                cutoff = None
+            
+            if cutoff:
+                filtered_alerts = []
+                for alert in alerts:
+                    try:
+                        ts = datetime.fromisoformat(alert.get("timestamp", "").replace("Z", "+00:00"))
+                        ts_naive = ts.replace(tzinfo=None)
+                        if ts_naive >= cutoff:
+                            filtered_alerts.append(alert)
+                    except (ValueError, TypeError):
+                        filtered_alerts.append(alert)
+                alerts = filtered_alerts
+        
+        total = len(alerts)
+        
+        if total == 0:
+            return {
+                "total_alerts": 0, "high_risk": 0, "medium_risk": 0, "low_risk": 0,
+                "unique_users": 0, "avg_risk_score": 0.0,
+                "top_domains": [], "top_users": [], "time_range": time_range
+            }
+        
+        # Risk level counts (score is 0-100)
+        high_risk = sum(1 for a in alerts if a.get("risk_score", 0) > 70)
+        medium_risk = sum(1 for a in alerts if 40 <= a.get("risk_score", 0) <= 70)
+        low_risk = sum(1 for a in alerts if a.get("risk_score", 0) < 40)
+        
+        # Unique users and average score
+        users = set(a.get("user", "") for a in alerts if a.get("user"))
+        scores = [a.get("risk_score", 0) for a in alerts]
+        avg_score = sum(scores) / len(scores) if scores else 0
+        
+        # Top domains by frequency
+        domain_counts = {}
+        for a in alerts:
+            domain = a.get("domain", "unknown")
+            domain_counts[domain] = domain_counts.get(domain, 0) + 1
+        top_domains = sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        # Top users by max risk score
+        user_max_risk = {}
+        for a in alerts:
+            user = a.get("user", "unknown")
+            risk = a.get("risk_score", 0)
+            if user not in user_max_risk or risk > user_max_risk[user]:
+                user_max_risk[user] = risk
+        top_users = sorted(user_max_risk.items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        return {
+            "total_alerts": total,
+            "high_risk": high_risk,
+            "medium_risk": medium_risk,
+            "low_risk": low_risk,
+            "unique_users": len(users),
+            "avg_risk_score": round(avg_score, 2),
+            "top_domains": [{"domain": d, "count": c} for d, c in top_domains],
+            "top_users": [{"user": u, "max_risk": r} for u, r in top_users],
+            "time_range": time_range
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating stats: {str(e)}")
+
+
+@app.get("/api/alerts/search")
+async def search_alerts(
+    q: Optional[str] = None,
+    risk_level: Optional[str] = Query(None, regex="^(high|medium|low)$"),
+    category: Optional[str] = None,
+    user: Optional[str] = None,
+    domain: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0
+):
+    """Search and filter alerts by various criteria."""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis service unavailable")
+    
+    try:
+        alerts = _get_all_alerts()
+        
+        # Apply filters
+        if q:
+            q_lower = q.lower()
+            alerts = [a for a in alerts if (
+                q_lower in a.get("user", "").lower() or
+                q_lower in a.get("domain", "").lower() or
+                q_lower in a.get("category", "").lower() or
+                q_lower in a.get("ai_message", "").lower()
+            )]
+        
+        if risk_level:
+            if risk_level == "high":
+                alerts = [a for a in alerts if a.get("risk_score", 0) > 70]
+            elif risk_level == "medium":
+                alerts = [a for a in alerts if 40 <= a.get("risk_score", 0) <= 70]
+            elif risk_level == "low":
+                alerts = [a for a in alerts if a.get("risk_score", 0) < 40]
+        
+        if category:
+            alerts = [a for a in alerts if a.get("category", "").lower() == category.lower()]
+        
+        if user:
+            alerts = [a for a in alerts if user.lower() in a.get("user", "").lower()]
+        
+        if domain:
+            alerts = [a for a in alerts if domain.lower() in a.get("domain", "").lower()]
+        
+        # Pagination
+        total = len(alerts)
+        paginated = alerts[offset:offset + limit]
+        
+        return {
+            "alerts": paginated,
+            "total": total,
+            "count": len(paginated),
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error searching alerts: {str(e)}")
+
+
+@app.get("/api/alerts/{alert_id}")
+async def get_alert_by_id(alert_id: str):
+    """Get a single alert by ID for investigation."""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis service unavailable")
+    
+    try:
+        alerts = _get_all_alerts()
+        
+        for alert in alerts:
+            if alert.get("id") == alert_id:
+                return alert
+        
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching alert: {str(e)}")
+
+
+@app.patch("/api/alerts/{alert_id}/status")
+async def update_alert_status(
+    alert_id: str, 
+    status: str = Query(..., regex="^(new|investigating|resolved|dismissed)$")
+):
+    """Update the status of an alert."""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis service unavailable")
+    
+    try:
+        # Get all alerts
+        raw_alerts = redis_client.lrange("alerts", 0, -1)
+        
+        for i, alert_str in enumerate(raw_alerts):
+            try:
+                alert = json.loads(alert_str)
+                if alert.get("id") == alert_id:
+                    # Update status
+                    alert["status"] = status
+                    # Update in Redis (replace at same position)
+                    redis_client.lset("alerts", i, json.dumps(alert))
+                    return {"message": f"Alert status updated to '{status}'", "alert": alert}
+            except json.JSONDecodeError:
+                continue
+        
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating alert: {str(e)}")
+
+
+@app.get("/api/analytics")
+async def get_analytics(time_range: str = Query("7d", regex="^(24h|7d|30d|all)$")):
+    """Get analytics data for charts and visualizations."""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis service unavailable")
+    
+    try:
+        alerts = _get_all_alerts()
+        
+        # Apply time filter
+        now = datetime.utcnow()
+        if time_range == "24h":
+            cutoff = now - timedelta(hours=24)
+        elif time_range == "7d":
+            cutoff = now - timedelta(days=7)
+        elif time_range == "30d":
+            cutoff = now - timedelta(days=30)
+        else:
+            cutoff = None
+        
+        if cutoff:
+            filtered = []
+            for a in alerts:
+                try:
+                    ts = datetime.fromisoformat(a.get("timestamp", "").replace("Z", "+00:00"))
+                    if ts.replace(tzinfo=None) >= cutoff:
+                        filtered.append(a)
+                except (ValueError, TypeError):
+                    filtered.append(a)
+            alerts = filtered
+        
+        # Risk trend over time (group by hour for 24h, day for 7d/30d)
+        risk_trend = {}
+        for a in alerts:
+            try:
+                ts = datetime.fromisoformat(a.get("timestamp", "").replace("Z", "+00:00"))
+                if time_range == "24h":
+                    key = ts.strftime("%Y-%m-%d %H:00")
+                else:
+                    key = ts.strftime("%Y-%m-%d")
+                if key not in risk_trend:
+                    risk_trend[key] = {"timestamp": key, "count": 0, "total_risk": 0}
+                risk_trend[key]["count"] += 1
+                risk_trend[key]["total_risk"] += a.get("risk_score", 0)
+            except (ValueError, TypeError):
+                continue
+        
+        # Calculate average risk per period
+        trend_data = []
+        for key in sorted(risk_trend.keys()):
+            entry = risk_trend[key]
+            entry["avg_risk"] = round(entry["total_risk"] / entry["count"], 2) if entry["count"] > 0 else 0
+            del entry["total_risk"]
+            trend_data.append(entry)
+        
+        # Top risky users (by alert count and max risk)
+        user_stats = {}
+        for a in alerts:
+            user = a.get("user", "unknown")
+            if user not in user_stats:
+                user_stats[user] = {"user": user, "alert_count": 0, "max_risk": 0, "total_risk": 0}
+            user_stats[user]["alert_count"] += 1
+            user_stats[user]["max_risk"] = max(user_stats[user]["max_risk"], a.get("risk_score", 0))
+            user_stats[user]["total_risk"] += a.get("risk_score", 0)
+        
+        for user in user_stats.values():
+            user["avg_risk"] = round(user["total_risk"] / user["alert_count"], 2) if user["alert_count"] > 0 else 0
+            del user["total_risk"]
+        
+        top_users = sorted(user_stats.values(), key=lambda x: x["max_risk"], reverse=True)[:10]
+        
+        # Top risky domains
+        domain_stats = {}
+        for a in alerts:
+            domain = a.get("domain", "unknown")
+            if domain not in domain_stats:
+                domain_stats[domain] = {"domain": domain, "alert_count": 0, "max_risk": 0}
+            domain_stats[domain]["alert_count"] += 1
+            domain_stats[domain]["max_risk"] = max(domain_stats[domain]["max_risk"], a.get("risk_score", 0))
+        
+        top_domains = sorted(domain_stats.values(), key=lambda x: x["alert_count"], reverse=True)[:10]
+        
+        # Category breakdown
+        category_counts = {}
+        for a in alerts:
+            cat = a.get("category", "unknown")
+            category_counts[cat] = category_counts.get(cat, 0) + 1
+        
+        categories = [{"category": k, "count": v} for k, v in category_counts.items()]
+        categories.sort(key=lambda x: x["count"], reverse=True)
+        
+        return {
+            "risk_trend": trend_data,
+            "top_users": top_users,
+            "top_domains": top_domains,
+            "categories": categories,
+            "time_range": time_range,
+            "total_alerts": len(alerts)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating analytics: {str(e)}")
+
+
+
+

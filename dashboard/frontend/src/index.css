@@ -91,134 +91,43 @@
     box-shadow: 0 0 20px -5px var(--color-brand-500);
   }
 
-  /* Hero Glow Effect */
-  .hero-glow {
-    @apply bg-gradient-to-br from-emerald-400 to-emerald-600 bg-clip-text text-transparent;
-    animation: pulse-glow-hero 3s ease-in-out infinite;
+  .delay-100 {
+    animation-delay: 0.1s;
   }
 
-  /* Primary Button */
-  .btn-primary {
-    @apply inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white font-semibold rounded-xl transition-all duration-300;
-    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+  .delay-200 {
+    animation-delay: 0.2s;
   }
 
-  .btn-primary:hover {
-    @apply -translate-y-0.5;
-    box-shadow: 0 8px 30px rgba(16, 185, 129, 0.5);
+  /* Custom scrollbar styles */
+  .scrollbar-thin {
+    scrollbar-width: thin;
   }
 
-  .btn-primary:active {
-    @apply translate-y-0;
+  .scrollbar-thumb-slate-600 {
+    scrollbar-color: #475569 transparent;
   }
 
-  /* Secondary Button */
-  .btn-secondary {
-    @apply inline-flex items-center gap-2 px-8 py-4 bg-white/5 text-white font-semibold rounded-xl border border-emerald-500/30 backdrop-blur-md transition-all duration-300;
+  .scrollbar-track-slate-800\/50 {
+    scrollbar-color: #475569 rgba(30, 41, 59, 0.5);
   }
 
-  .btn-secondary:hover {
-    @apply bg-white/10 border-emerald-500/50 -translate-y-0.5;
+  /* Webkit scrollbar styles for better browser support */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
   }
 
-  /* Ghost Button */
-  .btn-ghost {
-    @apply inline-flex items-center gap-2 px-4 py-2 text-gray-400 font-medium text-sm rounded-lg border border-transparent backdrop-blur-md transition-all duration-300 hover:text-emerald-400 hover:border-emerald-500/30;
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 3px;
   }
 
-  /* Simulation Buttons */
-  .simulation-btn {
-    @apply flex items-center justify-center gap-2 px-6 py-4 font-semibold rounded-xl border backdrop-blur-md transition-all duration-300 text-sm;
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 3px;
   }
 
-  .simulation-btn:disabled {
-    @apply opacity-50 cursor-not-allowed;
-  }
-
-  .simulation-btn-danger {
-    @apply bg-gradient-to-br from-red-500/10 to-red-900/10 border-red-500/30 text-red-300;
-  }
-
-  .simulation-btn-danger:hover:not(:disabled) {
-    @apply bg-gradient-to-br from-red-500/20 to-red-900/20 border-red-500/50 -translate-y-0.5;
-    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
-  }
-
-  .simulation-btn-warning {
-    @apply bg-gradient-to-br from-orange-500/10 to-orange-900/10 border-orange-500/30 text-orange-300;
-  }
-
-  .simulation-btn-warning:hover:not(:disabled) {
-    @apply bg-gradient-to-br from-orange-500/20 to-orange-900/20 border-orange-500/50 -translate-y-0.5;
-    box-shadow: 0 4px 20px rgba(251, 146, 60, 0.3);
-  }
-
-  .simulation-btn-safe {
-    @apply bg-gradient-to-br from-emerald-500/10 to-emerald-900/10 border-emerald-500/30 text-emerald-300;
-  }
-
-  .simulation-btn-safe:hover:not(:disabled) {
-    @apply bg-gradient-to-br from-emerald-500/20 to-emerald-900/20 border-emerald-500/50 -translate-y-0.5;
-    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
-  }
-
-  /* Terminal Output */
-  .terminal-output {
-    @apply bg-black border border-emerald-500/20 rounded-lg p-6 min-h-[200px] max-h-[400px] overflow-y-auto;
-    font-family: 'Courier New', monospace;
-    font-size: 0.875rem;
-    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
-  }
-
-  .terminal-line {
-    @apply mb-2 leading-relaxed;
-  }
-
-  .terminal-info {
-    @apply text-emerald-300;
-  }
-
-  .terminal-success {
-    @apply text-emerald-500 font-semibold;
-  }
-
-  .terminal-warning {
-    @apply text-yellow-400;
-  }
-
-  .terminal-error {
-    @apply text-red-400;
-  }
-
-  /* Custom Scrollbar */
-  .terminal-output::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .terminal-output::-webkit-scrollbar-track {
-    @apply bg-black/30 rounded;
-  }
-
-  .terminal-output::-webkit-scrollbar-thumb {
-    @apply bg-emerald-500/30 rounded;
-  }
-
-  .terminal-output::-webkit-scrollbar-thumb:hover {
-    @apply bg-emerald-500/50;
-  }
-
-  /* Gradient Background */
-  .bg-gradient-radial {
-    background: radial-gradient(circle at center, var(--tw-gradient-stops));
-  }
-}
-
-/* Additional Keyframes */
-@keyframes pulse-glow-hero {
-  0%, 100% {
-    filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.5));
-  }
-  50% {
-    filter: drop-shadow(0 0 40px rgba(16, 185, 129, 0.8));
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
   }
 }

@@ -1,7 +1,7 @@
 # dec25_intern_E_security
 GitHub Repo for Team E
 
-## Run Locally (Hybrid Dev)
+## Run Locally
 
 This project supports a fast frontend dev loop (Vite HMR) while running the backend pipeline in Docker.
 
@@ -9,7 +9,7 @@ This project supports a fast frontend dev loop (Vite HMR) while running the back
 
 - Docker + Docker Compose
 - Node.js (npm)
-- Python (only if running the generator on host; otherwise it can run in Docker)
+- Python (only if running the generator on host; otherwise, it can run in Docker)
 
 ---
 
