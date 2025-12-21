@@ -229,7 +229,6 @@ class OpenRouterSimilarityDetector:
             "consumer_saas_tools": (0.5, "Consumer SaaS tool", "saas"),
             "file_transfer_anonymous": (0.9, "Anonymous file transfer", "file_transfer"),
             "anonymous_communication": (0.8, "Anonymous communication service", "anonymous"),
-            "anonymous_services": (0.8, "Anonymous service", "anonymous"),
         }
         
         if top_cat in category_mapping:
