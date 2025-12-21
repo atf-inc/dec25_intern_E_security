@@ -198,7 +198,7 @@ class FusionEngine:
         """
         # Rely on the Semantic Engine's precise logic
         try:
-            from .semantic import OpenRouterSimilarityDetector
+            from worker..semantic import OpenRouterSimilarityDetector
             return OpenRouterSimilarityDetector.is_content_consumption(domain, url)
         except (ImportError, ValueError, AttributeError):
             # Very basic fallback that only matches known top search/info domains
