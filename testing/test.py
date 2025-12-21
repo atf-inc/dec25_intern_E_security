@@ -14,6 +14,8 @@ Troubleshooting:
 """
 
 import os
+import sys
+import time
 import requests
 
 EMBEDDING_API_URL = os.getenv("EMBEDDING_API_URL")
@@ -51,33 +53,40 @@ def test_health():
         return False
 
 
-if __name__ == "__main__":
-    import sys
+def test_embedding():
+    """Test embedding generation."""
+    print("\n[TEST] Embedding Generation")
+    print("-" * 40)
     
-    print("=" * 50)
-    print("EMBEDDING API TEST SUITE")
-    print("=" * 50)
-    print(f"API URL: {EMBEDDING_API_URL}")
+    test_text = "chatgpt openai artificial intelligence"
     
-    results = []
-    results.append(("Health Check", test_health()))
-    results.append(("Embedding", test_embedding()))
-    results.append(("Latency", test_latency()))
-    
-    # Print summary
-    print("\n" + "=" * 50)
-    print("TEST SUMMARY")
-    print("=" * 50)
-    
-    all_passed = True
-    for name, passed in results:
-        status = "✅ PASS" if passed else "❌ FAIL"
-        print(f"  {name}: {status}")
-        if not passed:
-            all_passed = False
-    
-    print("\n" + ("All tests passed!" if all_passed else "Some tests failed!"))
-    sys.exit(0 if all_passed else 1)
+    try:
+        start = time.time()
+        res = requests.post(
+            EMBEDDING_API_URL,
+            params={"text": test_text},
+            timeout=30
+        )
+        elapsed = (time.time() - start) * 1000
+        
+        res.raise_for_status()
+        embedding = res.json()
+        
+        print(f"  Input: '{test_text}'")
+        print(f"  Response time: {elapsed:.0f}ms")
+        print(f"  Embedding length: {len(embedding)}")
+        print(f"  First 5 values: {embedding[:5]}")
+        
+        if len(embedding) == 1024:
+            print("  ✅ Embedding generation PASSED")
+            return True
+        else:
+            print(f"  ⚠️ WARNING: Expected 1024 dims, got {len(embedding)}")
+            return False
+            
+    except Exception as e:
+        print(f"  ❌ FAILED: {e}")
+        return False
 
 
 def test_latency():
@@ -85,7 +94,6 @@ def test_latency():
     print("\n[TEST] Latency Benchmark (5 requests)")
     print("-" * 40)
     
-    import time
     test_texts = [
         "dropbox file sharing",
         "google drive storage",
@@ -121,38 +129,28 @@ def test_latency():
     return False
 
 
-def test_embedding():
-    """Test embedding generation."""
-    print("\n[TEST] Embedding Generation")
-    print("-" * 40)
+if __name__ == "__main__":
+    print("=" * 50)
+    print("EMBEDDING API TEST SUITE")
+    print("=" * 50)
+    print(f"API URL: {EMBEDDING_API_URL}")
     
-    test_text = "chatgpt openai artificial intelligence"
+    results = []
+    results.append(("Health Check", test_health()))
+    results.append(("Embedding", test_embedding()))
+    results.append(("Latency", test_latency()))
     
-    try:
-        import time
-        start = time.time()
-        res = requests.post(
-            EMBEDDING_API_URL,
-            params={"text": test_text},
-            timeout=30
-        )
-        elapsed = (time.time() - start) * 1000
-        
-        res.raise_for_status()
-        embedding = res.json()
-        
-        print(f"  Input: '{test_text}'")
-        print(f"  Response time: {elapsed:.0f}ms")
-        print(f"  Embedding length: {len(embedding)}")
-        print(f"  First 5 values: {embedding[:5]}")
-        
-        if len(embedding) == 1024:
-            print("  ✅ Embedding generation PASSED")
-            return True
-        else:
-            print(f"  ⚠️ WARNING: Expected 1024 dims, got {len(embedding)}")
-            return False
-            
-    except Exception as e:
-        print(f"  ❌ FAILED: {e}")
-        return False
+    # Print summary
+    print("\n" + "=" * 50)
+    print("TEST SUMMARY")
+    print("=" * 50)
+    
+    all_passed = True
+    for name, passed in results:
+        status = "✅ PASS" if passed else "❌ FAIL"
+        print(f"  {name}: {status}")
+        if not passed:
+            all_passed = False
+    
+    print("\n" + ("All tests passed!" if all_passed else "Some tests failed!"))
+    sys.exit(0 if all_passed else 1)
