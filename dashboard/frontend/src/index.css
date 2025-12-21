@@ -87,6 +87,36 @@
     @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-emerald-600;
   }
 
+  /* Hero Glow Animation */
+  .hero-glow {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-400;
+    animation: pulse-glow-hero 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow-hero {
+    0%, 100% {
+      filter: brightness(1);
+    }
+    50% {
+      filter: brightness(1.2);
+    }
+  }
+
+  /* Primary Button */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-lg shadow-lg shadow-emerald-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/40 hover:-translate-y-0.5;
+  }
+
+  /* Secondary Button */
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-emerald-500/30 text-white font-semibold rounded-lg backdrop-blur-md transition-all duration-300 hover:bg-white/10 hover:border-emerald-500/50 hover:-translate-y-0.5;
+  }
+
+  /* Ghost Button */
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-gray-400 font-medium text-sm rounded-lg border border-transparent backdrop-blur-md transition-all duration-300 hover:text-emerald-400 hover:border-emerald-500/30;
+  }
+
   .glow {
     box-shadow: 0 0 20px -5px var(--color-brand-500);
   }
@@ -129,5 +159,71 @@
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: #64748b;
+  }
+
+  /* Simulation Buttons - Clean and Simple */
+  .simulation-btn {
+    @apply flex items-center justify-center gap-2 px-6 py-4 font-semibold rounded-xl border backdrop-blur-md transition-all duration-300 text-sm;
+  }
+
+  .simulation-btn-danger {
+    @apply bg-slate-900/50 border-red-500/40 text-white hover:bg-slate-900/70 hover:border-red-500/60;
+  }
+
+  .simulation-btn-warning {
+    @apply bg-slate-900/50 border-orange-500/40 text-white hover:bg-slate-900/70 hover:border-orange-500/60;
+  }
+
+  .simulation-btn-safe {
+    @apply bg-slate-900/50 border-emerald-500/40 text-white hover:bg-slate-900/70 hover:border-emerald-500/60;
+  }
+
+  /* Terminal Output Styles */
+  .terminal-output {
+    @apply bg-black/40 border border-emerald-500/20 rounded-lg p-4 font-mono text-sm min-h-[200px] max-h-[300px] overflow-y-auto;
+  }
+
+  /* Apply scrollbar styles separately */
+  .terminal-output {
+    scrollbar-width: thin;
+    scrollbar-color: #475569 rgba(30, 41, 59, 0.5);
+  }
+
+  .terminal-output::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .terminal-output::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 3px;
+  }
+
+  .terminal-output::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 3px;
+  }
+
+  .terminal-output::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+  }
+
+  .terminal-line {
+    @apply mb-1;
+  }
+
+  .terminal-info {
+    @apply text-gray-400;
+  }
+
+  .terminal-success {
+    @apply text-emerald-400;
+  }
+
+  .terminal-warning {
+    @apply text-orange-400;
+  }
+
+  .terminal-error {
+    @apply text-red-400;
   }
 }
