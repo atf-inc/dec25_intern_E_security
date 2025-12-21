@@ -180,7 +180,31 @@
 
   /* Terminal Output Styles */
   .terminal-output {
-    @apply bg-black/40 border border-emerald-500/20 rounded-lg p-4 font-mono text-sm min-h-[200px] max-h-[300px] overflow-y-auto scrollbar-thin;
+    @apply bg-black/40 border border-emerald-500/20 rounded-lg p-4 font-mono text-sm min-h-[200px] max-h-[300px] overflow-y-auto;
+  }
+
+  /* Apply scrollbar styles separately */
+  .terminal-output {
+    scrollbar-width: thin;
+    scrollbar-color: #475569 rgba(30, 41, 59, 0.5);
+  }
+
+  .terminal-output::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .terminal-output::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 3px;
+  }
+
+  .terminal-output::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 3px;
+  }
+
+  .terminal-output::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
   }
 
   .terminal-line {
