@@ -31,9 +31,9 @@ class FusionEngine:
         # Resolve paths relative to the file if not provided
         script_dir = os.path.dirname(os.path.abspath(__file__))
         if blacklist_path is None:
-            blacklist_path = os.path.join(script_dir, "..", "config", "blacklist.json")
+            blacklist_path = os.path.abspath(os.path.join(script_dir, "..", "config", "blacklist.json"))
         if whitelist_path is None:
-            whitelist_path = os.path.join(script_dir, "..", "config", "whitelist.json")
+            whitelist_path = os.path.abspath(os.path.join(script_dir, "..", "config", "whitelist.json"))
         # Normalize weights to sum to 1.0 (guard against division by zero)
         total = behavior_weight + semantic_weight
         if total <= 0:
@@ -64,7 +64,11 @@ class FusionEngine:
     
     def _normalize_domain(self, domain: str) -> str:
         """
-        Normalize domain by removing protocol and www prefix.
+        Normalize domain by removing protocol, www prefix, port, and path.
+        
+        Examples:
+            https://www.example.com:8080/path → example.com
+            http://api.example.com/v1 → api.example.com
         """
         domain = domain.lower().strip()
         
@@ -77,8 +81,14 @@ class FusionEngine:
         # Remove www prefix
         if domain.startswith("www."):
             domain = domain[4:]
-            
-        return domain.split("/")[0]  # Remove any path components
+        
+        # Remove path components
+        domain = domain.split("/")[0]
+        
+        # Remove port if present (e.g., example.com:8080 → example.com)
+        domain = domain.split(":")[0]
+        
+        return domain
 
     def _check_explicit_lists(self, domain: str) -> Dict[str, Any]:
         """
