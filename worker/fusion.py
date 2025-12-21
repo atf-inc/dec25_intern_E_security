@@ -159,11 +159,8 @@ class FusionEngine:
             Adjustment value (-0.2 to +0.2)
         """
         if behavior_result.get("is_first_visit", False):
-            return 0.2   # Novel domain = higher risk
-        # Could add: check visit_count for repeated usage
-        # elif behavior_result.get("visit_count", 0) > 3:
-        #     return -0.2  # Established pattern = lower risk
-        return 0.0       # Normal
+            return 0.15   # +15% risk boost for first-time access
+        return 0.0        # No adjustment for known domains
     
     def _is_content_consumption(self, domain: str, url: str) -> bool:
         """
@@ -178,10 +175,10 @@ class FusionEngine:
         """
         # Import here to avoid circular dependency
         try:
-            from semantic import OpenRouterSimilarityDetector
+            from .semantic import OpenRouterSimilarityDetector
             return OpenRouterSimilarityDetector.is_content_consumption(domain, url)
-        except ImportError:
-            # Fallback to basic check
+        except (ImportError, ValueError):
+            # Fallback to basic check if import fails
             PATTERNS = ["news", "docs", "wiki", "stackoverflow", "search"]
             combined = (domain + url).lower()
             return any(p in combined for p in PATTERNS)
@@ -265,7 +262,8 @@ class FusionEngine:
         # Final weighted fusion
         fused_score = min(
             (context_semantic_score * self.semantic_weight) + 
-            (behavior_adjustment * self.behavior_weight),
+            (behavior_score * self.behavior_weight) +
+            behavior_adjustment,  # Added directly (not weighted)
             1.0
         )
         
