@@ -1,10 +1,13 @@
 import { motion } from 'framer-motion';
-import { Shield, Bot, Lock, Zap, Database, Bell, ArrowRight, Github, FileText, Users, Server, HardDrive } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Shield, Bot, Lock, Zap, Database, Bell, ArrowRight, Github, FileText, Users, Server, HardDrive, ExternalLink } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { SimulationConsole } from './SimulationConsole';
 import { HeroCircuitBackground, FloatingNode } from './HeroCircuitBackground';
 
 export function LandingPage() {
+  const navigate = useNavigate();
+  
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -85,13 +88,23 @@ export function LandingPage() {
               Real-time detection of unauthorized SaaS usage, Shadow AI, and file sharing in your corporate network.
             </p>
 
-            <button
-              onClick={() => scrollToSection('simulation')}
-              className="btn-primary group"
-            >
-              <span>Launch Simulation</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <button
+                onClick={() => scrollToSection('simulation')}
+                className="btn-primary group"
+              >
+                <span>Launch Simulation</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+              
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="btn-ghost group"
+              >
+                <ExternalLink className="w-5 h-5" />
+                <span>View Dashboard</span>
+              </button>
+            </div>
           </motion.div>
         </div>
 
