@@ -2,9 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
-from starlette.middleware.sessions import SessionMiddleware
-from database import engine, Base
-from routes import health, alerts, stats, analytics, auth
+from routes import health, alerts, stats, analytics, simulate
 
 app = FastAPI(title="ShadowGuard Dashboard API")
 
@@ -31,3 +29,5 @@ app.include_router(auth.router)
 async def init_tables():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+app.include_router(simulate.router)
+
