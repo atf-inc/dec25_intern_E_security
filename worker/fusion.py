@@ -334,7 +334,24 @@ class FusionEngine:
                 "explanation": semantic_result.get("explanation", "")
             }
         }
-        
+
+        # DEBUG: Log fusion inputs and outputs for observability
+        print(
+            "[FUSION DEBUG]",
+            f"domain={domain}",
+            f"user={user_id}",
+            f"method={method}",
+            f"upload_mb={result['upload_size_mb']}",
+            f"semantic={result['semantic_score']}",
+            f"behavior={result['behavior_score']}",
+            f"ctx_sem={result['context_semantic_score']}",
+            f"m_mult={method_multiplier}",
+            f"u_mult={upload_multiplier}",
+            f"beh_adj={behavior_adjustment}",
+            f"final={result['final_risk_score']}",
+            f"level={risk_level}",
+        )
+
         return result
 
     def generate_alert(self, fused_result: Dict[str, Any]) -> str:
