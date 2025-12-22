@@ -12,9 +12,9 @@ import {
     ChevronDown,
     X,
     Eye,
-    CheckCircle
+    CheckCircle,
+    Bell
 } from 'lucide-react';
-import FilterPanel from './filterpanel';
 
 interface Alert {
     id: string;
@@ -36,22 +36,9 @@ interface Stats {
     avg_risk_score: number;
 }
 
-interface FilterState {
-    riskLevel: string[];
-    timeRange: string;
-    domainType: string[];
-    category: string[];
-}
 
-interface StatItem {
-    label: string;
-    value: string;
-    trend: string;
-    icon: React.ComponentType<{ className?: string }>;
-    color: string;
-}
 
-type TimeRangeKeys = 'hour' | 'day' | 'week' | 'month';
+
 
 export const Dashboard: React.FC = () => {
     const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -126,83 +113,10 @@ export const Dashboard: React.FC = () => {
         };
     }, [searchQuery, riskFilter]);
 
-    // Filter and search logic
+    // Update filtered alerts based on current alerts
     useEffect(() => {
-        let filtered = [...alerts];
-
-        // Apply search
-        if (searchTerm) {
-            filtered = filtered.filter(alert =>
-                alert.domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                alert.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                alert.category.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-
-        // Apply risk level filter
-        if (filters.riskLevel.length > 0) {
-            filtered = filtered.filter(alert => {
-                const riskScore = alert.risk_score;
-                return filters.riskLevel.some(level => {
-                    if (level === 'high') return riskScore > 75;
-                    if (level === 'medium') return riskScore >= 40 && riskScore <= 75;
-                    if (level === 'low') return riskScore < 40;
-                    return false;
-                });
-            });
-        }
-
-        // Apply time range filter
-        if (filters.timeRange !== 'all') {
-            const now = new Date();
-            const timeRanges: Record<TimeRangeKeys, number> = {
-                hour: 1000 * 60 * 60,
-                day: 1000 * 60 * 60 * 24,
-                week: 1000 * 60 * 60 * 24 * 7,
-                month: 1000 * 60 * 60 * 24 * 30
-            };
-            
-            const timeLimit = now.getTime() - timeRanges[filters.timeRange as TimeRangeKeys];
-            filtered = filtered.filter(alert => new Date(alert.timestamp).getTime() > timeLimit);
-        }
-
-        // Apply domain type filter
-        if (filters.domainType.length > 0) {
-            filtered = filtered.filter(alert => 
-                filters.domainType.includes(alert.domainType || 'unknown')
-            );
-        }
-
-        // Apply category filter
-        if (filters.category.length > 0) {
-            filtered = filtered.filter(alert => 
-                filters.category.some(cat => alert.category.toLowerCase().includes(cat.replace('-', ' ')))
-            );
-        }
-
-        setFilteredAlerts(filtered);
-    }, [alerts, filters, searchTerm]);
-
-    const handleFilterChange = (category: string, value: string | string[]): void => {
-        if (category === 'timeRange') {
-            setFilters(prev => ({ ...prev, timeRange: value as string }));
-        } else {
-            setFilters(prev => ({
-                ...prev,
-                [category]: value
-            }));
-        }
-    };
-
-    const clearFilters = (): void => {
-        setFilters({
-            riskLevel: [],
-            timeRange: 'all',
-            domainType: [],
-            category: []
-        });
-        setSearchTerm('');
-    };
+        setFilteredAlerts(alerts);
+    }, [alerts]);
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-50 font-sans selection:bg-brand-500/30">
@@ -273,8 +187,6 @@ export const Dashboard: React.FC = () => {
                                     setIsSearching(true);
                                 }}
                                 placeholder="Search events, users, or domains..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full bg-slate-900/50 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/50 transition-all placeholder:text-slate-600"
                             />
                             {isSearching && (
