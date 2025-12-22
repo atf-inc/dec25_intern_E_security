@@ -227,9 +227,9 @@ export const Dashboard: React.FC = () => {
                                 ) : error ? (
                                     <tr>
                                         <td colSpan={7} className="px-6 py-16 text-center text-gray-500">
-                                            <Shield className="w-12 h-12 mx-auto mb-3 text-emerald-500/30" />
-                                            <p className="text-lg font-medium mb-1">No alerts to display</p>
-                                            <p className="text-sm">Run a simulation to generate test alerts.</p>
+                                            <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-amber-400" />
+                                            <p className="text-lg font-medium mb-1">Failed to load alerts</p>
+                                            <p className="text-sm">There was a problem fetching alerts. Please try again.</p>
                                         </td>
                                     </tr>
                                 ) : alerts.length === 0 ? (
