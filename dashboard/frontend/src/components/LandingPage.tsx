@@ -15,7 +15,7 @@ export function LandingPage() {
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
       {/* Hero Section - EqtyLab Style */}
-      <section className="relative min-h-screen flex items-center justify-center px-6 py-20 overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden">
         {/* Dark gradient background */}
         <div className="absolute inset-0 bg-gradient-to-b from-black via-slate-950 to-black"></div>
         
@@ -37,7 +37,7 @@ export function LandingPage() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1 }}
-            className="mb-12"
+            className="mb-8"
           >
             <div className="inline-block relative">
               {/* Glow effect */}
