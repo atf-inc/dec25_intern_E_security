@@ -192,36 +192,36 @@ export function LandingPage() {
               <GlassCard delay={0.1}>
                 <div className="p-8">
                   <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                    <span className="text-red-400">›</span> Inserting Backdoors in AI Models
+                    <span className="text-red-400">›</span> Unchecked Shadow AI Usage
                   </h3>
-                  <p className="text-gray-400">Malicious actors compromise model integrity</p>
+                  <p className="text-gray-400">Employees pasting sensitive code and PII into unapproved public LLMs.</p>
                 </div>
               </GlassCard>
 
               <GlassCard delay={0.2}>
                 <div className="p-8">
                   <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                    <span className="text-red-400">›</span> Extraction of AI Models and Data
+                    <span className="text-red-400">›</span> Unauthorized Data Exfiltration
                   </h3>
-                  <p className="text-gray-400">Sensitive IP leaked through unapproved channels</p>
+                  <p className="text-gray-400">Silent uploads of corporate IP to file-sharing services like Mega.</p>
                 </div>
               </GlassCard>
 
               <GlassCard delay={0.3}>
                 <div className="p-8">
                   <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                    <span className="text-red-400">›</span> Jailbreaks & Model DoS Attacks
+                    <span className="text-red-400">›</span> Bypassing Legacy Firewalls
                   </h3>
-                  <p className="text-gray-400">Bypassing safety measures and overwhelming systems</p>
+                  <p className="text-gray-400">Encrypted SaaS traffic often evades traditional inspection tools.</p>
                 </div>
               </GlassCard>
 
               <GlassCard delay={0.4}>
                 <div className="p-8">
                   <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                    <span className="text-red-400">›</span> Social Engineering & Misalignment
+                    <span className="text-red-400">›</span> Lack of Semantic Visibility
                   </h3>
-                  <p className="text-gray-400">Manipulating AI outputs for malicious purposes</p>
+                  <p className="text-gray-400">Security teams lack context on why a user accessed a site.</p>
                 </div>
               </GlassCard>
             </div>
