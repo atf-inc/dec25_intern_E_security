@@ -50,7 +50,7 @@ export const Login = () => {
                                 {isLoading ? (
                                     <span className="flex items-center">
                                         <div className="w-5 h-5 border-t-2 border-black rounded-full animate-spin mr-3"></div>
-                                        Redirecting...
+                                        Connecting to Google...
                                     </span>
                                 ) : (
                                     <>
