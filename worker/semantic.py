@@ -107,7 +107,37 @@ class OpenRouterSimilarityDetector:
 
     # ---------------- EMBEDDINGS ----------------
 
-    def _get_embedding(self, texts: List[str]) -> np.ndarray:
+    def _get_embedding_from_gcp(self, texts: List[str]) -> np.ndarray:
+        """Get embeddings from the self-hosted GCP VM embedding model.
+        
+        Requires EMBEDDING_API_URL environment variable to be set.
+        See .env.example for configuration.
+        """
+        embedding_api_url = os.getenv("EMBEDDING_API_URL")
+        if not embedding_api_url:
+            raise ValueError(
+                "EMBEDDING_API_URL is not set. "
+                "Please set it in your .env file. See .env.example"
+            )
+        
+        embeddings = []
+        for text in texts:
+            response = requests.post(
+                embedding_api_url,
+                params={"text": text},
+                timeout=30
+            )
+            
+            if response.status_code != 200:
+                raise RuntimeError(f"GCP Embedding API error: {response.text}")
+            
+            embedding = response.json()
+            embeddings.append(embedding)
+        
+        return np.array(embeddings)
+
+    def _get_embedding_from_openrouter(self, texts: List[str]) -> np.ndarray:
+        """Fallback: Get embeddings from OpenRouter API."""
         if not self.api_key:
             raise ValueError("OPENROUTER_API_KEY is missing")
 
@@ -129,6 +159,30 @@ class OpenRouterSimilarityDetector:
 
         data = response.json()["data"]
         return np.array([d["embedding"] for d in data])
+
+    def _get_embedding(self, texts: List[str]) -> np.ndarray:
+        """Get embeddings with GCP VM as primary and OpenRouter as fallback.
+        
+        First tries the self-hosted GCP embedding model.
+        If that fails, falls back to OpenRouter API.
+        """
+        # Try GCP VM instance first
+        try:
+            return self._get_embedding_from_gcp(texts)
+        except Exception as gcp_error:
+            print(f"⚠️  GCP embedding instance failed: {gcp_error}")
+            print("🔄 Falling back to OpenRouter for embeddings...")
+            
+            # Fall back to OpenRouter
+            try:
+                result = self._get_embedding_from_openrouter(texts)
+                print("✅ Successfully retrieved embeddings from OpenRouter (fallback)")
+                return result
+            except Exception as openrouter_error:
+                raise RuntimeError(
+                    f"Both embedding sources failed. "
+                    f"GCP: {gcp_error}, OpenRouter: {openrouter_error}"
+                )
 
     def _get_embedding_with_retry(self, texts: List[str]) -> np.ndarray:
         for i in range(self.max_retries):
