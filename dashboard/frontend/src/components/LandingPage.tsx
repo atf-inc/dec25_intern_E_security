@@ -397,10 +397,10 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Verifiable Compute <span className="text-emerald-400">Verifies</span>
+              Complete Visibility into <span className="text-emerald-400">Shadow AI</span>
             </h2>
             <p className="text-gray-400 text-lg max-w-3xl mx-auto">
-              Introducing Verifiable Compute. Ready for the Agentic AI Era.
+              Detect, Analyze, and Block unauthorized GenAI usage before data leaves your network.
             </p>
           </div>
 
