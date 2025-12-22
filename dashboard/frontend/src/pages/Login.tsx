@@ -40,6 +40,7 @@ export const Login = () => {
                         <button
                             onClick={handleGoogleLogin}
                             disabled={isLoading}
+                            aria-label="Sign in with Google"
                             className={`w-full group relative overflow-hidden bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${isLoading ? 'opacity-75 cursor-not-allowed' : ''
                                 }`}
                         >
