@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
-from routes import health, alerts, stats, analytics
+from routes import health, alerts, stats, analytics, simulate
 
 app = FastAPI(title="ShadowGuard Dashboard API")
 
@@ -20,3 +20,5 @@ app.include_router(health.router)
 app.include_router(alerts.router)
 app.include_router(stats.router)
 app.include_router(analytics.router)
+app.include_router(simulate.router)
+
