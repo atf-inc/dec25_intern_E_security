@@ -22,11 +22,13 @@ oauth.register(
 
 @router.get("/login")
 async def login(request: Request):
+    """Initiates the Google OAuth login flow."""
     redirect_uri = request.url_for('auth')
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/callback")
 async def auth(request: Request, db: AsyncSession = Depends(get_db)):
+    """Handles the OAuth callback and user session creation."""
     try:
         token = await oauth.google.authorize_access_token(request)
     except Exception as e:
@@ -61,11 +63,13 @@ async def auth(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.get("/logout")
 async def logout(request: Request):
+    """Clears the user session."""
     request.session.pop('user', None)
     return {"message": "Logged out"}
 
 @router.get("/me")
 async def get_current_user(request: Request):
+    """Returns the current authenticated user's profile."""
     user = request.session.get('user')
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
