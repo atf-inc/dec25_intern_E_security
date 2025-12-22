@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from config import settings
+from database import engine, Base
 from routes import health, alerts, stats, analytics, simulate, auth
 
 app = FastAPI(title="ShadowGuard Dashboard API")
