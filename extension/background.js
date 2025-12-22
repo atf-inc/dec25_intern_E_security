@@ -1,7 +1,7 @@
 // ShadowGuard AI Extension - Background Service Worker (FIXED)
 
 let config = {
-    collectorUrl: 'http://localhost:8010/logs',
+    collectorUrl: 'http://localhost:8000/logs',
     userId: 'user@company.com',
     enabled: true,
     batchSize: 1,      // REAL-TIME: Send every log immediately
