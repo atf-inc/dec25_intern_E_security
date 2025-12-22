@@ -19,7 +19,7 @@ This directory contains test scripts to validate the self-hosted embedding model
 
 1. Navigate to **Compute Engine** → **VM instances**
    - Direct URL: `https://console.cloud.google.com/compute/instances`
-2. Locate your embedding model VM (e.g., `embedding-vm`, `nlp-server`, etc.)
+2. Locate your embedding model VM (mxbai-embed-large-v1, new ones can be added as well for better compute power)
 
 ### Step 3: Get the External IP
 
