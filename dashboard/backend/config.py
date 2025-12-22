@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     SECRET_KEY: str = "your_secret_key_change_in_production"
     
-
-
+    # Frontend URL for Redirects
+    FRONTEND_URL: str = "http://localhost:5173"
     # API Configuration
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000

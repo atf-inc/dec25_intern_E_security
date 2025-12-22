@@ -61,7 +61,7 @@ async def auth(request: Request, db: AsyncSession = Depends(get_db)):
     request.session['user'] = {'email': user.email, 'id': user.id, 'picture': user.picture, 'name': user.name}
     
     # Redirect to frontend
-    return RedirectResponse(url=settings.ALLOWED_ORIGINS[0] + "/dashboard")
+    return RedirectResponse(url=settings.FRONTEND_URL + "/dashboard")
 
 @router.get("/logout")
 async def logout(request: Request):
