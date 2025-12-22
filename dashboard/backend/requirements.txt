@@ -4,3 +4,4 @@ redis
 pydantic
 pydantic-settings
 python-dotenv
+httpx

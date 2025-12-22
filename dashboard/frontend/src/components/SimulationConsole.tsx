@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Terminal, AlertTriangle, Shield, Bell, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Terminal, AlertTriangle, Shield, Bell, FileText, ExternalLink } from 'lucide-react';
 
 type SimulationType = 'shadow_ai' | 'data_leak' | 'false_positive';
 
@@ -10,19 +11,27 @@ interface LogEntry {
 }
 
 export function SimulationConsole() {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   const simulateAttack = async (type: SimulationType) => {
     setIsRunning(true);
     setLogs([]);
 
+    const typeLabels: Record<SimulationType, string> = {
+      shadow_ai: 'Shadow AI',
+      data_leak: 'Data Leak (Blacklist)',
+      false_positive: 'Safe Traffic (Whitelist)',
+    };
+
     const messages: LogEntry[] = [
       { text: '> Initializing simulation...', type: 'info' },
-      { text: `> Injecting ${type.replace('_', ' ')} payload...`, type: 'warning' },
+      { text: `> Injecting ${typeLabels[type]} payload...`, type: 'warning' },
       { text: '> Worker received log entry...', type: 'info' },
-      { text: '> Running AI semantic analysis...', type: 'info' },
+      { text: '> Running analysis...', type: 'info' },
     ];
 
     // Simulate typing effect
@@ -44,10 +53,19 @@ export function SimulationConsole() {
         const result = await response.json();
         setLogs(prev => [
           ...prev,
-          { text: `> AI Analysis: ${result.risk_level || 'High Risk'} (${result.confidence || '0.98'})`, type: 'success' },
-          { text: '> Alert sent to Dashboard ✓', type: 'success' },
-          { text: '> Simulation complete.', type: 'success' },
+          { text: `> Simulation sent: ${result.scenario || type}`, type: 'success' },
+          { text: `> Expected risk: ${result.expected_risk || 'HIGH'}`, type: 'success' },
+          { text: '> Check dashboard for results', type: 'info' },
         ]);
+
+        // Show toast and navigate to dashboard
+        setToastMessage('Simulation sent. Opening dashboard...');
+        setShowToast(true);
+        
+        setTimeout(() => {
+          setShowToast(false);
+          navigate('/dashboard');
+        }, 1500);
       } else {
         setLogs(prev => [
           ...prev,
@@ -58,7 +76,8 @@ export function SimulationConsole() {
     } catch (error) {
       setLogs(prev => [
         ...prev,
-        { text: '> Simulation initiated (backend may be offline)', type: 'warning' },
+        { text: '> Simulation initiated (backend may still be processing)', type: 'warning' },
+        { text: '> Check dashboard for results', type: 'info' },
       ]);
     }
 
@@ -66,6 +85,7 @@ export function SimulationConsole() {
   };
 
   const testSlackAlert = () => {
+    setToastMessage('Slack Alert Sent! Security team notified.');
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
@@ -142,7 +162,7 @@ export function SimulationConsole() {
           )}
         </div>
 
-        {/* Ghost Buttons */}
+        {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 mt-6 justify-center">
           <button
             onClick={testSlackAlert}
@@ -150,6 +170,14 @@ export function SimulationConsole() {
           >
             <Bell className="w-4 h-4" />
             <span>Test Slack Alert</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="btn-ghost"
+          >
+            <ExternalLink className="w-4 h-4" />
+            <span>View Dashboard</span>
           </button>
 
           <button
@@ -163,20 +191,21 @@ export function SimulationConsole() {
       </motion.div>
 
       {/* Toast Notification */}
-      {showToast && (
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 50 }}
-          className="fixed bottom-8 right-8 bg-emerald-500 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 z-50"
-        >
-          <Bell className="w-5 h-5" />
-          <div>
-            <div className="font-semibold">Slack Alert Sent!</div>
-            <div className="text-sm text-emerald-100">Security team has been notified</div>
-          </div>
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 right-8 bg-emerald-500 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 z-50"
+          >
+            <Bell className="w-5 h-5" />
+            <div>
+              <div className="font-semibold">{toastMessage}</div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
