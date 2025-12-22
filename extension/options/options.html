@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ShadowGuard AI Settings</title>
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.5;
+            padding: 40px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--card);
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #6d28d9;
+        }
+
+        .status {
+            margin-top: 16px;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            display: none;
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.1);
+            color: #4ade80;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🛡️ ShadowGuard AI Settings</h1>
+
+        <div class="form-group">
+            <label for="userId">Corporate Email</label>
+            <input type="email" id="userId" placeholder="user@company.com">
+            <p class="help-text">Used to identify alerts in the dashboard.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="collectorUrl">Collector API Endpoint</label>
+            <input type="text" id="collectorUrl" placeholder="http://localhost:8000/logs">
+            <p class="help-text">URL of the ShadowGuard collector service.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="batchSize">Batch Size</label>
+            <input type="number" id="batchSize" value="10" min="1" max="100">
+            <p class="help-text">Number of logs to queue before sending.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="batchInterval">Send Interval (Seconds)</label>
+            <input type="number" id="batchInterval" value="60" min="5" max="3600">
+            <p class="help-text">Maximum time to wait before sending queued logs.</p>
+        </div>
+
+        <button id="saveBtn">Save Configuration</button>
+        <div id="status" class="status">✅ Settings saved successfully!</div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+
+</html>
