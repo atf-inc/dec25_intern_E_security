@@ -102,18 +102,28 @@ class ShadowGuardWorker:
             return False
 
     def _process_log(self, log_data: dict) -> dict:
+        """Process a single log event through all analysis engines."""
         domain = log_data.get("domain", "")
         user_id = log_data.get("user_id", "")
+        url = log_data.get("url", "")  # NEW: Extract URL
+        method = log_data.get("method", "GET")  # NEW: Extract HTTP method
+        upload_size_bytes = log_data.get("upload_size_bytes", 0)  # NEW: Extract upload size
 
-        # Semantic analysis
-        semantic_result = self._semantic_engine.analyze(domain)
+        # Semantic analysis (with URL for content consumption detection)
+        semantic_result = self._semantic_engine.analyze(domain, url)
 
         # Behavior analysis
         behavior_result = self._behavior_engine.analyze(user_id, domain)
 
-        # Fuse results using FusionEngine
+        # Fuse results using context-aware FusionEngine
         fused_result = self._fusion_engine.fuse(
-            domain, user_id, behavior_result, semantic_result
+            domain=domain,
+            user_id=user_id,
+            url=url,
+            method=method,
+            upload_size_bytes=upload_size_bytes,
+            behavior_result=behavior_result,
+            semantic_result=semantic_result
         )
 
         return fused_result
