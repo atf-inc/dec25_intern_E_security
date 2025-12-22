@@ -20,6 +20,7 @@ oauth.register(
     }
 )
 
+# --- OAuth Routes ---
 @router.get("/login")
 async def login(request: Request):
     """Initiates the Google OAuth login flow."""
