@@ -12,3 +12,6 @@ class User(Base):
     provider = Column(String, nullable=False)  # google, github, etc.
     provider_id = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self):
+        return f"<User {self.email}>"
