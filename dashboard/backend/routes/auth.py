@@ -1,11 +1,8 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
-from sqlalchemy.future import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
-from database import get_db, db_available
-from models import User
+
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -28,12 +25,10 @@ async def login(request: Request):
     redirect_uri = request.url_for('auth')
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
+
 @router.get("/callback")
-async def auth(request: Request, db: AsyncSession = Depends(get_db)):
+async def auth(request: Request):
     """Handles the OAuth callback and user session creation."""
-    if db is None:
-        raise HTTPException(status_code=503, detail="Authentication unavailable - database not configured")
-    
     try:
         token = await oauth.google.authorize_access_token(request)
     except Exception as e:
@@ -43,28 +38,18 @@ async def auth(request: Request, db: AsyncSession = Depends(get_db)):
     if not user_info:
         user_info = await oauth.google.userinfo(token=token)
 
-    # Check if user exists
-    stmt = select(User).where(User.email == user_info['email'])
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-
-    if not user:
-        user = User(
-            email=user_info['email'],
-            name=user_info.get('name'),
-            picture=user_info.get('picture'),
-            provider='google',
-            provider_id=user_info['sub']
-        )
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
-    
-    # Create simple session
-    request.session['user'] = {'email': user.email, 'id': user.id, 'picture': user.picture, 'name': user.name}
+    # Create simple session directly from OAuth user info
+    request.session['user'] = {
+        'email': user_info['email'],
+        'name': user_info.get('name'),
+        'picture': user_info.get('picture'),
+        'provider': 'google',
+        'provider_id': user_info.get('sub')
+    }
     
     # Redirect to frontend
     return RedirectResponse(url=settings.FRONTEND_URL + "/dashboard")
+
 
 @router.get("/logout")
 async def logout(request: Request):
