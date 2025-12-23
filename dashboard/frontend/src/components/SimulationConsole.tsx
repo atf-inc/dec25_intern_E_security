@@ -27,6 +27,14 @@ export function SimulationConsole() {
       false_positive: 'Safe Traffic (Whitelist)',
     };
 
+    // First, reset all existing alerts for a fresh start
+    try {
+      await fetch('/api/alerts/reset', { method: 'POST' });
+      setLogs([{ text: '> Cleared previous alerts for fresh simulation...', type: 'info' }]);
+    } catch (error) {
+      console.log('Reset failed, continuing anyway');
+    }
+
     const messages: LogEntry[] = [
       { text: '> Initializing simulation...', type: 'info' },
       { text: `> Injecting ${typeLabels[type]} payload...`, type: 'warning' },
@@ -61,7 +69,7 @@ export function SimulationConsole() {
         // Show toast and navigate to dashboard
         setToastMessage('Simulation sent. Opening dashboard...');
         setShowToast(true);
-        
+
         setTimeout(() => {
           setShowToast(false);
           navigate('/dashboard');
