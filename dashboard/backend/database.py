@@ -1,18 +1,25 @@
+"""
+Database configuration with optional PostgreSQL support.
+If PostgreSQL is not available, the app continues without auth features.
+"""
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from config import settings
 import urllib.parse
 
+# Global state for database availability
+_engine = None
+_async_session_local = None
+db_available = False
+
+# Base class for models (always available for imports)
+Base = declarative_base()
+
+
 def fix_database_url_for_asyncpg(db_url: str) -> tuple[str, dict]:
     """
     Fix database URL for asyncpg compatibility by removing unsupported parameters
     and converting them to appropriate connect_args.
-    
-    Args:
-        db_url: The original database URL
-        
-    Returns:
-        Tuple of (fixed_url, connect_args)
     """
     connect_args = {}
     
@@ -29,7 +36,6 @@ def fix_database_url_for_asyncpg(db_url: str) -> tuple[str, dict]:
             connect_args["ssl"] = "prefer"
         elif sslmode == "disable":
             connect_args["ssl"] = False
-        # Remove from URL params
         del qs["sslmode"]
     
     # Remove channel_binding - not supported by asyncpg at all
@@ -55,35 +61,62 @@ def fix_database_url_for_asyncpg(db_url: str) -> tuple[str, dict]:
     
     return clean_url, connect_args
 
-# Fix the database URL and get connect_args
-db_url, connect_args = fix_database_url_for_asyncpg(settings.DATABASE_URL)
 
-# Create Async Engine with proper configuration
-engine = create_async_engine(
-    db_url,
-    connect_args=connect_args,
-    echo=settings.ENVIRONMENT == "development",  # Only show SQL in development
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,
-    pool_recycle=300,
-    pool_timeout=30,
-)
+async def init_database():
+    """
+    Initialize database connection. Call this on startup.
+    Returns True if successful, False otherwise.
+    """
+    global _engine, _async_session_local, db_available
+    
+    try:
+        db_url, connect_args = fix_database_url_for_asyncpg(settings.DATABASE_URL)
+        
+        _engine = create_async_engine(
+            db_url,
+            connect_args=connect_args,
+            echo=settings.ENVIRONMENT == "development",
+            pool_size=10,
+            max_overflow=20,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            pool_timeout=30,
+        )
+        
+        # Test connection
+        async with _engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        
+        _async_session_local = sessionmaker(
+            bind=_engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
+        )
+        
+        db_available = True
+        print("[DB] ✅ Database connected and tables initialized")
+        return True
+        
+    except Exception as e:
+        print(f"[DB] ⚠️  Database unavailable: {e}")
+        print("[DB] ⚠️  Auth features disabled - app will continue without database")
+        db_available = False
+        return False
 
-# Create Session Factory
-AsyncSessionLocal = sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
 
-# Base class for models
-Base = declarative_base()
+def get_engine():
+    """Get the database engine (may be None if database unavailable)."""
+    return _engine
 
-# Dependency to get DB session
+
 async def get_db():
-    """Database session dependency for FastAPI"""
-    async with AsyncSessionLocal() as session:
+    """Database session dependency for FastAPI."""
+    if not db_available or _async_session_local is None:
+        # Return None - routes should handle this gracefully
+        yield None
+        return
+        
+    async with _async_session_local() as session:
         try:
             yield session
         finally:
