@@ -7,18 +7,34 @@ import { HeroCircuitBackground, FloatingNode } from './HeroCircuitBackground';
 
 export function LandingPage() {
   const navigate = useNavigate();
-  
+
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
+      {/* Navigation Header */}
+      <nav className="absolute top-0 w-full z-50">
+        <div className="flex justify-between items-center px-6 py-6 max-w-7xl mx-auto">
+          <div className="flex items-center gap-2">
+            <Shield className="w-8 h-8 text-emerald-400" />
+            <span className="text-xl font-bold tracking-tight">ShadowGuard</span>
+          </div>
+          <button
+            onClick={() => navigate('/login')}
+            className="px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium hover:bg-emerald-500/20 hover:border-emerald-500/30 transition-all backdrop-blur-sm"
+          >
+            Login
+          </button>
+        </div>
+      </nav>
+
       {/* Hero Section - EqtyLab Style */}
       <section className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden">
         {/* Dark gradient background */}
         <div className="absolute inset-0 bg-gradient-to-b from-black via-slate-950 to-black"></div>
-        
+
         {/* Circuit lines background */}
         <div className="absolute inset-0">
           <HeroCircuitBackground />
@@ -42,21 +58,21 @@ export function LandingPage() {
             <div className="inline-block relative">
               {/* Glow effect */}
               <div className="absolute inset-0 bg-emerald-500/30 blur-3xl rounded-3xl"></div>
-              
+
               {/* Chip container - reduced size */}
               <div className="relative w-24 h-24 mx-auto rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border-2 border-emerald-500/40 flex items-center justify-center shadow-2xl">
                 {/* Inner glow */}
                 <div className="absolute inset-2 bg-emerald-500/10 rounded-lg"></div>
-                
+
                 {/* Logo/Icon - smaller */}
                 <Shield className="w-12 h-12 text-emerald-400 relative z-10" strokeWidth={1.5} />
-                
+
                 {/* Corner accents */}
                 <div className="absolute top-1.5 left-1.5 w-2.5 h-2.5 border-t-2 border-l-2 border-emerald-500/60"></div>
                 <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 border-t-2 border-r-2 border-emerald-500/60"></div>
                 <div className="absolute bottom-1.5 left-1.5 w-2.5 h-2.5 border-b-2 border-l-2 border-emerald-500/60"></div>
                 <div className="absolute bottom-1.5 right-1.5 w-2.5 h-2.5 border-b-2 border-r-2 border-emerald-500/60"></div>
-                
+
                 {/* Pulsing ring */}
                 <motion.div
                   className="absolute inset-0 rounded-xl border-2 border-emerald-500/40"
@@ -96,7 +112,7 @@ export function LandingPage() {
                 <span>Launch Simulation</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              
+
               <button
                 onClick={() => navigate('/dashboard')}
                 className="btn-ghost group"
@@ -205,7 +221,7 @@ export function LandingPage() {
                   {/* Content */}
                   <div className="relative z-10 h-full flex flex-col">
                     <h3 className="text-emerald-400 font-bold text-lg mb-auto">Data Log Analysis</h3>
-                    
+
                     {/* Floating document icons */}
                     <div className="flex-1 flex items-center justify-center relative">
                       <motion.div
@@ -229,7 +245,7 @@ export function LandingPage() {
                       >
                         <Upload className="w-7 h-7 text-emerald-500/40" />
                       </motion.div>
-                      
+
                       {/* Central shield with glow */}
                       <motion.div
                         animate={{ scale: [1, 1.05, 1] }}
