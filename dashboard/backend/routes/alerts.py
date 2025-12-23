@@ -91,3 +91,22 @@ async def update_alert_status(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating alert: {str(e)}")
+
+
+@router.post("/reset")
+async def reset_alerts():
+    """
+    Clear all alerts from Redis to start fresh simulations.
+    This is called automatically when starting a new simulation.
+    """
+    if not redis_service.is_available:
+        raise HTTPException(status_code=503, detail="Redis service unavailable")
+    
+    try:
+        deleted_count = redis_service.clear_all_alerts()
+        return {
+            "message": "All alerts cleared successfully",
+            "deleted_count": deleted_count
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error clearing alerts: {str(e)}")

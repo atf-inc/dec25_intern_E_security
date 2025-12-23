@@ -54,6 +54,8 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - EMBEDDING_API_URL=${EMBEDDING_API_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     volumes:
       - ./config:/config:ro
     depends_on:
