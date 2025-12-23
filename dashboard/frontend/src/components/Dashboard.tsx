@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -46,6 +46,7 @@ export const Dashboard: React.FC = () => {
     const [stats, setStats] = useState<Stats | null>(null);
     const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
     const [updatingStatus, setUpdatingStatus] = useState(false);
+    const hasAutoReset = useRef(false);
 
     // Fetch data on mount and poll every 5 seconds
     useEffect(() => {
@@ -79,6 +80,29 @@ export const Dashboard: React.FC = () => {
         const interval = setInterval(fetchData, 5000);
         return () => clearInterval(interval);
     }, []);
+
+    // Auto-reset when high risk > 100 or total alerts > 500
+    useEffect(() => {
+        if (stats && !hasAutoReset.current) {
+            const highRisk = stats.high_risk || 0;
+            const total = stats.total_alerts || 0;
+
+            if (highRisk > 100 || total > 500) {
+                console.log(`🔄 Auto-reset triggered: High Risk=${highRisk}, Total=${total}`);
+                hasAutoReset.current = true;
+
+                // Silently reset
+                fetch('/api/alerts/reset', { method: 'POST' })
+                    .then(() => {
+                        setAlerts([]);
+                        setStats(null);
+                        hasAutoReset.current = false;
+                        console.log('✅ Auto-reset completed');
+                    })
+                    .catch(err => console.error('Auto-reset failed:', err));
+            }
+        }
+    }, [stats]);
 
     // Get risk level info
     const getRiskInfo = (score: number) => {
@@ -273,11 +297,10 @@ export const Dashboard: React.FC = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-xs ${
-                                                        alert.status === 'resolved' ? 'text-emerald-400' :
-                                                        alert.status === 'investigating' ? 'text-yellow-400' :
-                                                        'text-gray-400'
-                                                    }`}>
+                                                    <span className={`text-xs ${alert.status === 'resolved' ? 'text-emerald-400' :
+                                                            alert.status === 'investigating' ? 'text-yellow-400' :
+                                                                'text-gray-400'
+                                                        }`}>
                                                         {alert.status || 'New'}
                                                     </span>
                                                 </td>
@@ -394,11 +417,10 @@ export const Dashboard: React.FC = () => {
                                     <button
                                         onClick={() => updateStatus(selectedAlert.id, 'investigating')}
                                         disabled={updatingStatus || selectedAlert.status === 'investigating'}
-                                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
-                                            selectedAlert.status === 'investigating'
+                                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${selectedAlert.status === 'investigating'
                                                 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
                                                 : 'bg-white/5 text-white border border-white/10 hover:bg-white/10'
-                                        } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
                                         <Eye className="w-4 h-4" />
                                         Mark as Investigating
@@ -406,11 +428,10 @@ export const Dashboard: React.FC = () => {
                                     <button
                                         onClick={() => updateStatus(selectedAlert.id, 'resolved')}
                                         disabled={updatingStatus || selectedAlert.status === 'resolved'}
-                                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
-                                            selectedAlert.status === 'resolved'
+                                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${selectedAlert.status === 'resolved'
                                                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                                                 : 'bg-emerald-500 text-white hover:bg-emerald-600'
-                                        } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
                                         <CheckCircle className="w-4 h-4" />
                                         Resolve
