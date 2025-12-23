@@ -337,7 +337,7 @@ npm install
 npm run dev
 ```
 
-Access at: [http://localhost:5173](http://localhost:5173) (with hot reload)
+Access at: [http://localhost:3000](http://localhost:3000) (with hot reload)
 
 ### Full Local Development
 
@@ -422,24 +422,5 @@ curl http://localhost:3000/api/health
 curl http://localhost:3000/health
 ```
 
----
 
-## 🤝 Contributing
 
-1. Create a feature branch: `git checkout -b feature/my-feature`
-2. Make your changes
-3. Run tests: `docker-compose up --build` and verify the pipeline
-4. Submit a PR
-
----
-
-## 📜 License
-
-This project is licensed under the MIT License.
-
----
-
-<p align="center">
-  <strong>Built with ❤️ by Team E</strong><br/>
-  <em>December 2024 Internship Project</em>
-</p>
