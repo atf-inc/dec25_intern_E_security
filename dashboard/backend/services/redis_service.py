@@ -111,6 +111,18 @@ class RedisService:
             return None
         except Exception:
             return None
+    
+    def clear_all_alerts(self) -> int:
+        """Clear all alerts from Redis. Returns the number of deleted alerts."""
+        if not self._client:
+            return 0
+        
+        try:
+            count = self._client.llen("alerts")
+            self._client.delete("alerts")
+            return count
+        except Exception:
+            return 0
 
 
 # Singleton instance for dependency injection
