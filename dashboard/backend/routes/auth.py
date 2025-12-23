@@ -4,7 +4,7 @@ from authlib.integrations.starlette_client import OAuth
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
-from database import get_db
+from database import get_db, db_available
 from models import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -31,6 +31,9 @@ async def login(request: Request):
 @router.get("/callback")
 async def auth(request: Request, db: AsyncSession = Depends(get_db)):
     """Handles the OAuth callback and user session creation."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Authentication unavailable - database not configured")
+    
     try:
         token = await oauth.google.authorize_access_token(request)
     except Exception as e:
