@@ -17,10 +17,15 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your_secret_key_change_in_production"
     
     # Frontend URL for Redirects
-    FRONTEND_URL: str = "http://localhost:5173"
+    FRONTEND_URL: str = "http://localhost:3000"
+    OAUTH_SUCCESS_REDIRECT_URL: str = "http://localhost:3000/dashboard"
+
     # API Configuration
     API_HOST: str = "0.0.0.0"
-    API_PORT: int = 8000
+    API_PORT: int = 8001
+    API_BASE_URL: str = "http://localhost:8001"
+
+
     
     # Environment
     ENVIRONMENT: str = "development"

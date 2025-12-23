@@ -22,7 +22,20 @@ oauth.register(
 async def login(request: Request):
     """Initiates the Google OAuth login flow."""
     print(f"Login attempt initiated: {request.client.host}")
-    redirect_uri = request.url_for('auth')
+    # Construction of redirect URI
+    if settings.API_BASE_URL:
+        # Construct absolute URL manually to avoid issues with request.url_for behind proxies
+        redirect_uri = settings.API_BASE_URL.rstrip('/') + str(request.url_for('auth'))
+        # If url_for already returned an absolute URL (which it often does), this might double up.
+        # But request.url_for('auth') returns a full URL usually.
+        # Let's be safer:
+        from urllib.parse import urljoin
+        base = settings.API_BASE_URL.rstrip('/') + '/'
+        relative = str(request.url_for('auth')).split(str(request.base_url))[-1]
+        redirect_uri = urljoin(base, relative)
+    else:
+        redirect_uri = request.url_for('auth')
+        
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
@@ -48,7 +61,8 @@ async def auth(request: Request):
     }
     
     # Redirect to frontend
-    return RedirectResponse(url=settings.FRONTEND_URL + "/dashboard")
+    return RedirectResponse(url=settings.OAUTH_SUCCESS_REDIRECT_URL)
+
 
 
 @router.get("/logout")
