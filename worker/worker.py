@@ -16,6 +16,7 @@ import requests
 from behavior import BehaviorEngine
 from semantic import ImprovedSemanticDetector
 from fusion import ImprovedFusionEngine
+from slack_notifier import SlackNotifier
 
 # Configuration
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
@@ -35,6 +36,7 @@ class ShadowGuardWorker:
         self._semantic_engine: Optional[ImprovedSemanticDetector] = None
         self._behavior_engine: Optional[BehaviorEngine] = None
         self._fusion_engine: Optional[ImprovedFusionEngine] = None
+        self._slack_notifier: Optional[SlackNotifier] = None
         self._processed_count = 0
         self._alert_count = 0
 
@@ -97,6 +99,10 @@ class ShadowGuardWorker:
             print("[ENGINE] Initializing Fusion Engine...")
             self._fusion_engine = ImprovedFusionEngine()
             print("[ENGINE] Fusion Engine ready")
+
+            print("[ENGINE] Initializing Slack Notifier...")
+            self._slack_notifier = SlackNotifier()
+
 
             return True
         except Exception as e:
@@ -257,6 +263,10 @@ Processing Time : {processing_time_ms:.1f}ms {'[OK]' if processing_time_ms < PER
             print(self._format_alert(result, log_data, processing_time_ms))
             # Save alert to Redis for dashboard
             self._save_alert_to_redis(result)
+            
+            # Send Slack Alert
+            if self._slack_notifier:
+                self._slack_notifier.send_alert(result)
         else:
             self._log_processed(result, processing_time_ms)
 
