@@ -330,22 +330,22 @@ class ImprovedSemanticDetector:
         
         return sims
     
-    # def _compute_similarities_offline(self, domain: str) -> Dict[str, float]:
-    #     """Offline fallback: exact/suffix matching against anchors"""
-    #     sims = {}
-    #     domain = domain.lower().strip()
+    def _compute_similarities_offline(self, domain: str) -> Dict[str, float]:
+        """Offline fallback: exact/suffix matching against anchors"""
+        sims = {}
+        domain = domain.lower().strip()
         
-    #     for category, domains in self.categories.items():
-    #         is_match = False
-    #         for d in domains:
-    #             d = d.lower().strip()
-    #             if domain == d or domain.endswith("." + d):
-    #                 is_match = True
-    #                 break
+        for category, domains in self.categories.items():
+            is_match = False
+            for d in domains:
+                d = d.lower().strip()
+                if domain == d or domain.endswith("." + d):
+                    is_match = True
+                    break
             
-    #         sims[category] = 0.92 if is_match else 0.08
+            sims[category] = 0.92 if is_match else 0.08
         
-    #     return sims
+        return sims
     
     # ==================== RISK CALCULATION ====================
     
