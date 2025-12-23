@@ -14,8 +14,8 @@ from typing import Optional
 import redis
 import requests
 from behavior import BehaviorEngine
-from semantic import OpenRouterSimilarityDetector
-from fusion import FusionEngine
+from semantic import ImprovedSemanticDetector
+from fusion import ImprovedFusionEngine
 
 # Configuration
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
@@ -32,9 +32,9 @@ class ShadowGuardWorker:
         self._running = False
         self._redis: Optional[redis.Redis] = None
         self._pubsub: Optional[redis.client.PubSub] = None
-        self._semantic_engine: Optional[OpenRouterSimilarityDetector] = None
+        self._semantic_engine: Optional[ImprovedSemanticDetector] = None
         self._behavior_engine: Optional[BehaviorEngine] = None
-        self._fusion_engine: Optional[FusionEngine] = None
+        self._fusion_engine: Optional[ImprovedFusionEngine] = None
         self._processed_count = 0
         self._alert_count = 0
 
@@ -87,7 +87,7 @@ class ShadowGuardWorker:
     def _init_engines(self) -> bool:
         try:
             print("[ENGINE] Initializing Semantic Engine...")
-            self._semantic_engine = OpenRouterSimilarityDetector()
+            self._semantic_engine = ImprovedSemanticDetector()
             print("[ENGINE] Semantic Engine ready")
 
             print("[ENGINE] Initializing Behavior Engine...")
@@ -95,7 +95,7 @@ class ShadowGuardWorker:
             print("[ENGINE] Behavior Engine ready")
 
             print("[ENGINE] Initializing Fusion Engine...")
-            self._fusion_engine = FusionEngine()
+            self._fusion_engine = ImprovedFusionEngine()
             print("[ENGINE] Fusion Engine ready")
 
             return True
