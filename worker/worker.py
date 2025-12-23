@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 import redis
+import requests
 from behavior import BehaviorEngine
 from semantic import OpenRouterSimilarityDetector
 from fusion import FusionEngine
@@ -22,6 +23,7 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 EVENTS_CHANNEL = "events"
 ALERT_THRESHOLD = 0.7
 PERFORMANCE_TARGET_MS = 500
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 
 class ShadowGuardWorker:
@@ -144,18 +146,48 @@ Processing Time : {processing_time_ms:.1f}ms {'[OK]' if processing_time_ms < PER
 """
         return alert
 
+    def _generate_ai_explanation(self, domain: str, url: str, category: str) -> str:
+        """Generate a concise AI explanation using Gemini API."""
+        if not GEMINI_API_KEY:
+            return f"Detected access to {category} service"
+        
+        try:
+            prompt = (
+                f"You are a security analyst. Explain why accessing {domain} ({url}) "
+                f"is a security risk in 1 short sentence. Category: {category}."
+            )
+            
+            response = requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}",
+                json={"contents": [{"parts": [{"text": prompt}]}]},
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+                return text.strip()
+            else:
+                print(f"[WARN] Gemini API returned {response.status_code}: {response.text}")
+        except Exception as e:
+            print(f"[WARN] Gemini API failed: {e}")
+        
+        return f"Detected access to {category} service"
+
     def _save_alert_to_redis(self, result: dict):
         """Save alert to Redis for backend consumption."""
         try:
-            # Handle override vs normal analysis
+            # Determine category
             if result.get("override"):
-                # Blacklisted/Whitelisted domain - use override data
                 category = "Blacklisted" if result["final_risk_score"] > 0.5 else "Whitelisted"
-                ai_message = result.get("override_reason", "No explanation")
             else:
-                # Normal analysis - use semantic data
                 category = result.get("semantic_analysis", {}).get("top_category", "unknown")
-                ai_message = result.get("semantic_analysis", {}).get("explanation", "No analysis available")
+            
+            # Always generate AI explanation
+            ai_message = self._generate_ai_explanation(
+                domain=result["domain"],
+                url=result.get("url", ""),
+                category=category
+            )
             
             # Format alert for frontend
             alert = {
