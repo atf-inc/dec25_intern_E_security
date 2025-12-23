@@ -4,8 +4,7 @@ redis
 pydantic
 pydantic-settings
 python-dotenv
-sqlalchemy
-asyncpg
 authlib
 httpx
 itsdangerous
+
