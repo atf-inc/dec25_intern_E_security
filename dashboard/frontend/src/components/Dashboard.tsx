@@ -14,6 +14,8 @@ import {
     ArrowLeft,
     FileText
 } from 'lucide-react';
+import { LanguageToggle } from './LanguageToggle';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface Alert {
     id: string;
@@ -40,6 +42,7 @@ interface Stats {
 
 export const Dashboard: React.FC = () => {
     const navigate = useNavigate();
+    const { t, language } = useLanguage();
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -106,9 +109,9 @@ export const Dashboard: React.FC = () => {
 
     // Get risk level info
     const getRiskInfo = (score: number) => {
-        if (score > 70) return { level: 'High', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
-        if (score > 40) return { level: 'Medium', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
-        return { level: 'Low', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
+        if (score > 70) return { level: t.dashboard.riskHigh, color: 'bg-red-500/20 text-red-400 border-red-500/30' };
+        if (score > 40) return { level: t.dashboard.riskMedium, color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
+        return { level: t.dashboard.riskLow, color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
     };
 
     // Format file size
@@ -128,10 +131,18 @@ export const Dashboard: React.FC = () => {
         const diffHours = Math.floor(diffMins / 60);
         const diffDays = Math.floor(diffHours / 24);
 
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        return `${diffDays}d ago`;
+        if (diffMins < 1) return t.dashboard.justNow;
+        if (diffMins < 60) return `${diffMins}${t.dashboard.minsAgo}`;
+        if (diffHours < 24) return `${diffHours}${t.dashboard.hoursAgo}`;
+        return `${diffDays}${t.dashboard.daysAgo}`;
+    };
+
+    // Get status display text
+    const getStatusText = (status?: string) => {
+        if (!status) return t.dashboard.statusNew;
+        if (status === 'investigating') return t.dashboard.statusInvestigating;
+        if (status === 'resolved') return t.dashboard.statusResolved;
+        return status;
     };
 
     // Update alert status
@@ -152,10 +163,10 @@ export const Dashboard: React.FC = () => {
     };
 
     const statCards = [
-        { label: 'Total Alerts', value: stats?.total_alerts || 0, icon: Activity, color: 'text-emerald-400' },
-        { label: 'High Risk', value: stats?.high_risk || 0, icon: AlertTriangle, color: 'text-red-400' },
-        { label: 'Affected Users', value: stats?.unique_users || 0, icon: Users, color: 'text-blue-400' },
-        { label: 'Avg Risk Score', value: stats?.avg_risk_score?.toFixed(1) || '0', icon: Shield, color: 'text-orange-400' },
+        { label: t.dashboard.totalAlerts, value: stats?.total_alerts || 0, icon: Activity, color: 'text-emerald-400' },
+        { label: t.dashboard.highRisk, value: stats?.high_risk || 0, icon: AlertTriangle, color: 'text-red-400' },
+        { label: t.dashboard.affectedUsers, value: stats?.unique_users || 0, icon: Users, color: 'text-blue-400' },
+        { label: t.dashboard.avgRiskScore, value: stats?.avg_risk_score?.toFixed(1) || '0', icon: Shield, color: 'text-orange-400' },
     ];
 
     return (
@@ -175,12 +186,15 @@ export const Dashboard: React.FC = () => {
                                 <div className="absolute inset-0 bg-emerald-500/30 blur-lg rounded-full"></div>
                                 <Shield className="w-8 h-8 text-emerald-400 relative z-10" />
                             </div>
-                            <span className="text-xl font-bold">ShadowGuard</span>
+                            <span className="text-xl font-bold">{t.common.shadowGuard}</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
-                        <div className={`w-2 h-2 rounded-full ${loading ? 'bg-yellow-400 animate-pulse' : 'bg-emerald-400'}`}></div>
-                        {loading ? 'Syncing...' : 'Live'}
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-400">
+                            <div className={`w-2 h-2 rounded-full ${loading ? 'bg-yellow-400 animate-pulse' : 'bg-emerald-400'}`}></div>
+                            {loading ? t.dashboard.syncing : t.dashboard.liveStatus}
+                        </div>
+                        <LanguageToggle />
                     </div>
                 </div>
             </header>
@@ -189,8 +203,8 @@ export const Dashboard: React.FC = () => {
             <main className="max-w-7xl mx-auto px-6 py-8">
                 {/* Title */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold mb-2">Security Overview</h1>
-                    <p className="text-gray-400">Real-time monitoring of shadow IT activities in your network.</p>
+                    <h1 className="text-3xl font-bold mb-2">{t.dashboard.securityOverview}</h1>
+                    <p className="text-gray-400">{t.dashboard.securityOverviewSubtitle}</p>
                 </div>
 
                 {/* Stats Cards */}
@@ -220,7 +234,7 @@ export const Dashboard: React.FC = () => {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <Activity className="w-5 h-5 text-emerald-400" />
-                                <h2 className="text-lg font-semibold">Recent Alerts</h2>
+                                <h2 className="text-lg font-semibold">{t.dashboard.recentAlerts}</h2>
                                 <span className="text-sm text-gray-500">({alerts.length})</span>
                             </div>
                         </div>
@@ -231,13 +245,13 @@ export const Dashboard: React.FC = () => {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-emerald-500/10 text-left text-sm text-gray-500">
-                                    <th className="px-6 py-4 font-medium">Time</th>
-                                    <th className="px-6 py-4 font-medium">User</th>
-                                    <th className="px-6 py-4 font-medium">Domain</th>
-                                    <th className="px-6 py-4 font-medium">Category</th>
-                                    <th className="px-6 py-4 font-medium">Risk</th>
-                                    <th className="px-6 py-4 font-medium">Status</th>
-                                    <th className="px-6 py-4 font-medium text-right">Action</th>
+                                    <th className="px-6 py-4 font-medium">{t.dashboard.time}</th>
+                                    <th className="px-6 py-4 font-medium">{t.dashboard.user}</th>
+                                    <th className="px-6 py-4 font-medium">{t.dashboard.domain}</th>
+                                    <th className="px-6 py-4 font-medium">{t.dashboard.category}</th>
+                                    <th className="px-6 py-4 font-medium">{t.dashboard.risk}</th>
+                                    <th className="px-6 py-4 font-medium">{t.dashboard.status}</th>
+                                    <th className="px-6 py-4 font-medium text-right">{t.dashboard.action}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-emerald-500/5">
@@ -245,23 +259,23 @@ export const Dashboard: React.FC = () => {
                                     <tr>
                                         <td colSpan={7} className="px-6 py-16 text-center text-gray-500">
                                             <Activity className="w-8 h-8 animate-spin mx-auto mb-3 text-emerald-400" />
-                                            <p>Loading alerts...</p>
+                                            <p>{t.dashboard.loadingAlerts}</p>
                                         </td>
                                     </tr>
                                 ) : error ? (
                                     <tr>
                                         <td colSpan={7} className="px-6 py-16 text-center text-gray-500">
                                             <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-amber-400" />
-                                            <p className="text-lg font-medium mb-1">Failed to load alerts</p>
-                                            <p className="text-sm">There was a problem fetching alerts. Please try again.</p>
+                                            <p className="text-lg font-medium mb-1">{t.dashboard.failedToLoad}</p>
+                                            <p className="text-sm">{t.dashboard.failedToLoadDesc}</p>
                                         </td>
                                     </tr>
                                 ) : alerts.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} className="px-6 py-16 text-center text-gray-500">
                                             <Shield className="w-12 h-12 mx-auto mb-3 text-emerald-500/30" />
-                                            <p className="text-lg font-medium mb-1">All clear!</p>
-                                            <p className="text-sm">No security alerts detected. Run a simulation to test the system.</p>
+                                            <p className="text-lg font-medium mb-1">{t.dashboard.allClear}</p>
+                                            <p className="text-sm">{t.dashboard.allClearDesc}</p>
                                         </td>
                                     </tr>
                                 ) : (
@@ -301,13 +315,13 @@ export const Dashboard: React.FC = () => {
                                                             alert.status === 'investigating' ? 'text-yellow-400' :
                                                                 'text-gray-400'
                                                         }`}>
-                                                        {alert.status || 'New'}
+                                                        {getStatusText(alert.status)}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <button className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 ml-auto">
                                                         <Eye className="w-4 h-4" />
-                                                        View
+                                                        {t.common.view}
                                                     </button>
                                                 </td>
                                             </tr>
@@ -361,41 +375,54 @@ export const Dashboard: React.FC = () => {
                                 {/* Summary */}
                                 <div className="p-4 rounded-lg bg-white/5 border border-emerald-500/10">
                                     <p className="text-gray-300">
-                                        User <span className="text-white font-medium">{selectedAlert.user}</span> accessed{' '}
-                                        <span className="text-white font-medium">{selectedAlert.domain}</span>
-                                        {selectedAlert.method && <> via <span className="text-emerald-400">{selectedAlert.method}</span></>}
-                                        {selectedAlert.upload_size_bytes && selectedAlert.upload_size_bytes > 0 && (
-                                            <> uploading <span className="text-orange-400">{formatSize(selectedAlert.upload_size_bytes)}</span></>
-                                        )}.
+                                        {language === 'ja' ? (
+                                            <>
+                                                ユーザー <span className="text-white font-medium">{selectedAlert.user}</span> が{' '}
+                                                <span className="text-white font-medium">{selectedAlert.domain}</span> にアクセス
+                                                {selectedAlert.method && <> (<span className="text-emerald-400">{selectedAlert.method}</span>経由)</>}
+                                                {selectedAlert.upload_size_bytes && selectedAlert.upload_size_bytes > 0 && (
+                                                    <> - <span className="text-orange-400">{formatSize(selectedAlert.upload_size_bytes)}</span>をアップロード</>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                User <span className="text-white font-medium">{selectedAlert.user}</span> accessed{' '}
+                                                <span className="text-white font-medium">{selectedAlert.domain}</span>
+                                                {selectedAlert.method && <> via <span className="text-emerald-400">{selectedAlert.method}</span></>}
+                                                {selectedAlert.upload_size_bytes && selectedAlert.upload_size_bytes > 0 && (
+                                                    <> uploading <span className="text-orange-400">{formatSize(selectedAlert.upload_size_bytes)}</span></>
+                                                )}.
+                                            </>
+                                        )}
                                     </p>
                                 </div>
 
                                 {/* AI Analysis */}
                                 {selectedAlert.ai_message && (
                                     <div>
-                                        <h3 className="text-sm font-medium text-gray-400 mb-2">AI Analysis</h3>
+                                        <h3 className="text-sm font-medium text-gray-400 mb-2">{t.dashboard.aiAnalysis}</h3>
                                         <p className="text-gray-300">{selectedAlert.ai_message}</p>
                                     </div>
                                 )}
 
                                 {/* Metadata Grid */}
                                 <div>
-                                    <h3 className="text-sm font-medium text-gray-400 mb-3">Alert Metadata</h3>
+                                    <h3 className="text-sm font-medium text-gray-400 mb-3">{t.dashboard.alertMetadata}</h3>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                                            <p className="text-xs text-gray-500 mb-1">Risk Score</p>
+                                            <p className="text-xs text-gray-500 mb-1">{t.dashboard.riskScore}</p>
                                             <p className="text-white font-medium">{selectedAlert.risk_score}/100</p>
                                         </div>
                                         <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                                            <p className="text-xs text-gray-500 mb-1">Status</p>
-                                            <p className="text-white font-medium capitalize">{selectedAlert.status || 'New'}</p>
+                                            <p className="text-xs text-gray-500 mb-1">{t.dashboard.status}</p>
+                                            <p className="text-white font-medium capitalize">{getStatusText(selectedAlert.status)}</p>
                                         </div>
                                         <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                                            <p className="text-xs text-gray-500 mb-1">Category</p>
+                                            <p className="text-xs text-gray-500 mb-1">{t.dashboard.category}</p>
                                             <p className="text-white font-medium">{selectedAlert.category}</p>
                                         </div>
                                         <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                                            <p className="text-xs text-gray-500 mb-1">Timestamp</p>
+                                            <p className="text-xs text-gray-500 mb-1">{t.dashboard.timestamp}</p>
                                             <p className="text-white font-medium text-sm">{new Date(selectedAlert.timestamp).toLocaleString()}</p>
                                         </div>
                                     </div>
@@ -405,7 +432,7 @@ export const Dashboard: React.FC = () => {
                                 <div>
                                     <h3 className="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
                                         <FileText className="w-4 h-4" />
-                                        Raw Log
+                                        {t.dashboard.rawLog}
                                     </h3>
                                     <pre className="terminal-output text-xs overflow-x-auto">
                                         {JSON.stringify(selectedAlert, null, 2)}
@@ -423,7 +450,7 @@ export const Dashboard: React.FC = () => {
                                             } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
                                         <Eye className="w-4 h-4" />
-                                        Mark as Investigating
+                                        {t.dashboard.markInvestigating}
                                     </button>
                                     <button
                                         onClick={() => updateStatus(selectedAlert.id, 'resolved')}
@@ -434,7 +461,7 @@ export const Dashboard: React.FC = () => {
                                             } ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
                                         <CheckCircle className="w-4 h-4" />
-                                        Resolve
+                                        {t.dashboard.resolve}
                                     </button>
                                 </div>
                             </div>

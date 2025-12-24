@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Filter, X, Calendar, Shield, Tag, ChevronDown } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface FilterPanelProps {
     filters: {
@@ -30,24 +31,25 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange, onCl
         timeRange: true,
         category: true
     });
+    const { t } = useLanguage();
 
     const filterOptions = {
         riskLevel: [
-            { value: 'high', label: 'High Risk (>75)', color: 'text-red-400' },
-            { value: 'medium', label: 'Medium Risk (40-75)', color: 'text-orange-400' },
-            { value: 'low', label: 'Low Risk (<40)', color: 'text-green-400' }
+            { value: 'high', label: t.filterPanel.highRisk, color: 'text-red-400' },
+            { value: 'medium', label: t.filterPanel.mediumRisk, color: 'text-orange-400' },
+            { value: 'low', label: t.filterPanel.lowRisk, color: 'text-green-400' }
         ] as FilterOption[],
         timeRange: [
-            { value: 'hour', label: 'Last Hour' },
-            { value: 'day', label: 'Last 24 Hours' },
-            { value: 'week', label: 'Last 7 Days' },
-            { value: 'month', label: 'Last 30 Days' },
-            { value: 'all', label: 'All Time' }
+            { value: 'hour', label: t.filterPanel.lastHour },
+            { value: 'day', label: t.filterPanel.last24Hours },
+            { value: 'week', label: t.filterPanel.last7Days },
+            { value: 'month', label: t.filterPanel.last30Days },
+            { value: 'all', label: t.filterPanel.allTime }
         ] as FilterOption[],
         category: [
-            { value: 'normal', label: 'Normal Events' },
-            { value: 'shadow-it', label: 'Shadow IT' },
-            { value: 'blacklist', label: 'Blacklisted Services' }
+            { value: 'normal', label: t.filterPanel.normalEvents },
+            { value: 'shadow-it', label: t.filterPanel.shadowIT },
+            { value: 'blacklist', label: t.filterPanel.blacklistedServices }
         ] as FilterOption[]
     };
 
@@ -94,7 +96,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange, onCl
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></div>
                 
                 <Filter className="w-4 h-4 relative z-10" />
-                <span className="relative z-10">Filter</span>
+                <span className="relative z-10">{t.common.filter}</span>
                 {activeCount > 0 && (
                     <div className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-bold min-w-[20px] flex items-center justify-center relative z-10 animate-pulse">
                         {activeCount}
@@ -110,7 +112,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange, onCl
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Filter className="w-5 h-5 text-brand-400" />
-                                <h3 className="font-semibold text-white">Filter Options</h3>
+                                <h3 className="font-semibold text-white">{t.filterPanel.filterOptions}</h3>
                             </div>
                             <div className="flex items-center gap-3">
                                 {activeCount > 0 && (
@@ -118,7 +120,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange, onCl
                                         onClick={onClearFilters}
                                         className="text-xs text-slate-400 hover:text-white transition-all duration-200 px-2 py-1 rounded bg-slate-700/50 hover:bg-slate-700 hover:scale-105"
                                     >
-                                        Clear all
+                                        {t.common.clearAll}
                                     </button>
                                 )}
                                 <button
@@ -141,7 +143,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange, onCl
                             >
                                 <div className="flex items-center gap-2">
                                     <Shield className="w-4 h-4 text-red-400" />
-                                    <span className="text-sm font-medium text-slate-200">Risk Level</span>
+                                    <span className="text-sm font-medium text-slate-200">{t.filterPanel.riskLevel}</span>
                                 </div>
                                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${expandedSections.riskLevel ? 'rotate-180' : ''}`} />
                             </button>
@@ -187,7 +189,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange, onCl
                             >
                                 <div className="flex items-center gap-2">
                                     <Calendar className="w-4 h-4 text-blue-400" />
-                                    <span className="text-sm font-medium text-slate-200">Time Range</span>
+                                    <span className="text-sm font-medium text-slate-200">{t.filterPanel.timeRange}</span>
                                 </div>
                                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${expandedSections.timeRange ? 'rotate-180' : ''}`} />
                             </button>
@@ -232,7 +234,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange, onCl
                             >
                                 <div className="flex items-center gap-2">
                                     <Tag className="w-4 h-4 text-purple-400" />
-                                    <span className="text-sm font-medium text-slate-200">Event Category</span>
+                                    <span className="text-sm font-medium text-slate-200">{t.filterPanel.eventCategory}</span>
                                 </div>
                                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${expandedSections.category ? 'rotate-180' : ''}`} />
                             </button>
@@ -274,13 +276,13 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange, onCl
                     {/* Footer */}
                     <div className="p-4 border-t border-slate-700/30 bg-slate-800/20 flex justify-between items-center">
                         <span className="text-xs text-slate-400">
-                            {activeCount} filter{activeCount !== 1 ? 's' : ''} active
+                            {activeCount} {activeCount !== 1 ? t.common.filtersActive : t.common.filterActive}
                         </span>
                         <button
                             onClick={() => setIsOpen(false)}
                             className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-brand-500/20"
                         >
-                            Apply Filters
+                            {t.filterPanel.applyFilters}
                         </button>
                     </div>
                 </div>

@@ -1,10 +1,13 @@
-import React from 'react';
+import { useState } from 'react';
 import { Shield } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { HeroCircuitBackground } from '../components/HeroCircuitBackground';
+import { LanguageToggle } from '../components/LanguageToggle';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export const Login = () => {
-    const [isLoading, setIsLoading] = React.useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const { t } = useLanguage();
 
     const initiateGoogleLogin = () => {
         setIsLoading(true);
@@ -21,6 +24,11 @@ export const Login = () => {
                 <HeroCircuitBackground />
             </div>
 
+            {/* Language Toggle - Top Right */}
+            <div className="absolute top-6 right-6 z-20">
+                <LanguageToggle />
+            </div>
+
             <div className="relative z-10 w-full max-w-md px-6">
                 <GlassCard>
                     <div className="p-8 text-center">
@@ -32,15 +40,15 @@ export const Login = () => {
                             </div>
 
                             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 mb-2">
-                                ShadowGuard
+                                {t.common.shadowGuard}
                             </h1>
-                            <p className="text-gray-400">Secure Dashboard Access</p>
+                            <p className="text-gray-400">{t.login.secureDashboardAccess}</p>
                         </div>
 
                         <button
                             onClick={initiateGoogleLogin}
                             disabled={isLoading}
-                            aria-label="Sign in with Google"
+                            aria-label={t.login.signInWithGoogle}
                             className={`w-full group relative overflow-hidden bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${isLoading ? 'opacity-75 cursor-not-allowed' : ''
                                 }`}
                         >
@@ -50,7 +58,7 @@ export const Login = () => {
                                 {isLoading ? (
                                     <span className="flex items-center">
                                         <div className="w-5 h-5 border-t-2 border-black rounded-full animate-spin mr-3"></div>
-                                        Connecting to Google...
+                                        {t.login.connectingToGoogle}
                                     </span>
                                 ) : (
                                     <>
@@ -61,7 +69,7 @@ export const Login = () => {
                                                 className="w-4 h-4"
                                             />
                                         </div>
-                                        <span>Sign in with Google</span>
+                                        <span>{t.login.signInWithGoogle}</span>
                                     </>
                                 )}
                             </div>
