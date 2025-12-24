@@ -4,9 +4,12 @@ import { Shield, Bot, Lock, Zap, Database, Bell, ArrowRight, Github, FileText, U
 import { GlassCard } from './GlassCard';
 import { SimulationConsole } from './SimulationConsole';
 import { HeroCircuitBackground, FloatingNode } from './HeroCircuitBackground';
+import { LanguageToggle } from './LanguageToggle';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export function LandingPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -19,14 +22,17 @@ export function LandingPage() {
         <div className="flex justify-between items-center px-6 py-6 max-w-7xl mx-auto">
           <div className="flex items-center gap-2">
             <Shield className="w-8 h-8 text-emerald-400" />
-            <span className="text-xl font-bold tracking-tight">ShadowGuard</span>
+            <span className="text-xl font-bold tracking-tight">{t.common.shadowGuard}</span>
           </div>
-          <button
-            onClick={() => navigate('/login')}
-            className="px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium hover:bg-emerald-500/20 hover:border-emerald-500/30 transition-all backdrop-blur-sm"
-          >
-            Login
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/login')}
+              className="px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium hover:bg-emerald-500/20 hover:border-emerald-500/30 transition-all backdrop-blur-sm"
+            >
+              {t.common.login}
+            </button>
+            <LanguageToggle />
+          </div>
         </div>
       </nav>
 
@@ -97,11 +103,11 @@ export function LandingPage() {
             transition={{ duration: 0.8, delay: 0.3 }}
           >
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight">
-              Detect Shadow IT
+              {t.landing.heroTitle}
             </h1>
 
             <p className="text-lg md:text-xl text-gray-400 mb-10 mt-15 max-w-2xl mx-auto leading-relaxed">
-              Real-time detection of unauthorized SaaS usage, Shadow AI, and file sharing in your corporate network.
+              {t.landing.heroSubtitle}
             </p>
 
             <div className="flex flex-wrap gap-4 justify-center">
@@ -109,7 +115,7 @@ export function LandingPage() {
                 onClick={() => scrollToSection('simulation')}
                 className="btn-primary group"
               >
-                <span>Launch Simulation</span>
+                <span>{t.landing.launchSimulation}</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
 
@@ -118,7 +124,7 @@ export function LandingPage() {
                 className="btn-ghost group"
               >
                 <ExternalLink className="w-5 h-5" />
-                <span>View Dashboard</span>
+                <span>{t.landing.viewDashboard}</span>
               </button>
             </div>
           </motion.div>
@@ -175,13 +181,13 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <span className="px-4 py-2 rounded-full border border-red-500/30 bg-red-500/10 text-red-400 text-sm font-medium">
-              The Problem
+              {t.landing.theProblem}
             </span>
             <h2 className="text-4xl md:text-5xl font-bold mt-6 mb-4">
-              New AI workflows equal <span className="text-emerald-400">New Threats</span>
+              {t.landing.problemTitle}<span className="text-emerald-400">{t.landing.problemTitleHighlight}</span>
             </h2>
             <p className="text-gray-400 text-lg max-w-3xl mx-auto">
-              Compromising AI Supply Chains. Employees unknowingly expose sensitive data through unapproved AI tools and shadow SaaS applications.
+              {t.landing.problemSubtitle}
             </p>
           </div>
 
@@ -220,7 +226,7 @@ export function LandingPage() {
 
                   {/* Content */}
                   <div className="relative z-10 h-full flex flex-col">
-                    <h3 className="text-emerald-400 font-bold text-lg mb-auto">Data Log Analysis</h3>
+                    <h3 className="text-emerald-400 font-bold text-lg mb-auto">{t.landing.dataLogAnalysis}</h3>
 
                     {/* Floating document icons */}
                     <div className="flex-1 flex items-center justify-center relative">
@@ -262,7 +268,7 @@ export function LandingPage() {
                     {/* Progress indicator */}
                     <div className="mt-auto">
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-400">Logs Processed:</span>
+                        <span className="text-gray-400">{t.landing.logsProcessed}</span>
                         <span className="text-emerald-400 font-mono">99%</span>
                       </div>
                       <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
@@ -274,7 +280,7 @@ export function LandingPage() {
                           className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
                         />
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">Real-time data stream active</p>
+                      <p className="text-xs text-gray-500 mt-2">{t.landing.realTimeDataStream}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -296,7 +302,7 @@ export function LandingPage() {
                     >
                       24
                     </motion.p>
-                    <p className="text-xs text-gray-400">Threats</p>
+                    <p className="text-xs text-gray-400">{t.landing.threats}</p>
                   </div>
                 </motion.div>
 
@@ -311,7 +317,7 @@ export function LandingPage() {
                   <Bot className="w-6 h-6 text-emerald-400" />
                   <div>
                     <p className="text-2xl font-bold text-white">1.2k</p>
-                    <p className="text-xs text-gray-400">AI Scans</p>
+                    <p className="text-xs text-gray-400">{t.landing.aiScans}</p>
                   </div>
                 </motion.div>
 
@@ -326,7 +332,7 @@ export function LandingPage() {
                   <Users className="w-6 h-6 text-cyan-400" />
                   <div>
                     <p className="text-2xl font-bold text-white">156</p>
-                    <p className="text-xs text-gray-400">Users</p>
+                    <p className="text-xs text-gray-400">{t.landing.users}</p>
                   </div>
                 </motion.div>
 
@@ -341,7 +347,7 @@ export function LandingPage() {
                   <Cloud className="w-6 h-6 text-blue-400" />
                   <div>
                     <p className="text-2xl font-bold text-white">47</p>
-                    <p className="text-xs text-gray-400">SaaS Apps</p>
+                    <p className="text-xs text-gray-400">{t.landing.saasApps}</p>
                   </div>
                 </motion.div>
 
@@ -360,7 +366,7 @@ export function LandingPage() {
                       transition={{ duration: 1.5, repeat: Infinity }}
                       className="w-2 h-2 bg-emerald-400 rounded-full"
                     />
-                    <p className="text-xs text-gray-400">Live</p>
+                    <p className="text-xs text-gray-400">{t.landing.live}</p>
                   </div>
                 </motion.div>
               </div>
@@ -371,36 +377,36 @@ export function LandingPage() {
               <GlassCard delay={0.1}>
                 <div className="p-8">
                   <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                    <span className="text-red-400">›</span> Unchecked Shadow AI Usage
+                    <span className="text-red-400">›</span> {t.landing.threat1Title}
                   </h3>
-                  <p className="text-gray-400">Employees pasting sensitive code and PII into unapproved public LLMs.</p>
+                  <p className="text-gray-400">{t.landing.threat1Desc}</p>
                 </div>
               </GlassCard>
 
               <GlassCard delay={0.2}>
                 <div className="p-8">
                   <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                    <span className="text-red-400">›</span> Unauthorized Data Exfiltration
+                    <span className="text-red-400">›</span> {t.landing.threat2Title}
                   </h3>
-                  <p className="text-gray-400">Silent uploads of corporate IP to file-sharing services like Mega.</p>
+                  <p className="text-gray-400">{t.landing.threat2Desc}</p>
                 </div>
               </GlassCard>
 
               <GlassCard delay={0.3}>
                 <div className="p-8">
                   <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                    <span className="text-red-400">›</span> Bypassing Legacy Firewalls
+                    <span className="text-red-400">›</span> {t.landing.threat3Title}
                   </h3>
-                  <p className="text-gray-400">Encrypted SaaS traffic often evades traditional inspection tools.</p>
+                  <p className="text-gray-400">{t.landing.threat3Desc}</p>
                 </div>
               </GlassCard>
 
               <GlassCard delay={0.4}>
                 <div className="p-8">
                   <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                    <span className="text-red-400">›</span> Lack of Semantic Visibility
+                    <span className="text-red-400">›</span> {t.landing.threat4Title}
                   </h3>
-                  <p className="text-gray-400">Security teams lack context on why a user accessed a site.</p>
+                  <p className="text-gray-400">{t.landing.threat4Desc}</p>
                 </div>
               </GlassCard>
             </div>
@@ -413,10 +419,10 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Complete Visibility into <span className="text-emerald-400">Shadow AI</span>
+              {t.landing.solutionTitle}<span className="text-emerald-400">{t.landing.solutionTitleHighlight}</span>
             </h2>
             <p className="text-gray-400 text-lg max-w-3xl mx-auto">
-              Detect, Analyze, and Block unauthorized GenAI usage before data leaves your network.
+              {t.landing.solutionSubtitle}
             </p>
           </div>
 
@@ -426,9 +432,9 @@ export function LandingPage() {
                 <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                   <Database className="w-8 h-8 text-emerald-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Real-Time Interception</h3>
-                <p className="text-gray-400 mb-4">Collector Engine ingests logs instantly from any source (Zscaler, Firewalls)</p>
-                <div className="text-sm text-emerald-400 font-mono">What data goes into an AI workflow</div>
+                <h3 className="text-xl font-bold mb-3">{t.landing.solution1Title}</h3>
+                <p className="text-gray-400 mb-4">{t.landing.solution1Desc}</p>
+                <div className="text-sm text-emerald-400 font-mono">{t.landing.solution1Note}</div>
               </div>
             </GlassCard>
 
@@ -437,9 +443,9 @@ export function LandingPage() {
                 <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                   <Zap className="w-8 h-8 text-emerald-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">AI-Powered Analysis</h3>
-                <p className="text-gray-400 mb-4">OpenRouter LLM semantic analysis understands context, not just keywords</p>
-                <div className="text-sm text-emerald-400 font-mono">What code is run and where it is executed</div>
+                <h3 className="text-xl font-bold mb-3">{t.landing.solution2Title}</h3>
+                <p className="text-gray-400 mb-4">{t.landing.solution2Desc}</p>
+                <div className="text-sm text-emerald-400 font-mono">{t.landing.solution2Note}</div>
               </div>
             </GlassCard>
 
@@ -448,9 +454,9 @@ export function LandingPage() {
                 <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                   <Bell className="w-8 h-8 text-emerald-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Instant Response</h3>
-                <p className="text-gray-400 mb-4">Automated Slack alerts and Dashboard visualizations in milliseconds</p>
-                <div className="text-sm text-emerald-400 font-mono">The output is genuine and secure</div>
+                <h3 className="text-xl font-bold mb-3">{t.landing.solution3Title}</h3>
+                <p className="text-gray-400 mb-4">{t.landing.solution3Desc}</p>
+                <div className="text-sm text-emerald-400 font-mono">{t.landing.solution3Note}</div>
               </div>
             </GlassCard>
           </div>
@@ -462,10 +468,10 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Test the <span className="text-emerald-400">Defense Grid</span>
+              {t.landing.testDefenseGrid}<span className="text-emerald-400">{t.landing.defenseGridHighlight}</span>
             </h2>
             <p className="text-gray-400 text-lg">
-              Run live simulations against our AI engine right now.
+              {t.landing.simulationSubtitle}
             </p>
           </div>
 
@@ -478,7 +484,7 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              System <span className="text-emerald-400">Architecture</span>
+              {t.landing.systemArchitecture}<span className="text-emerald-400">{t.landing.architectureHighlight}</span>
             </h2>
           </div>
 
@@ -489,7 +495,7 @@ export function LandingPage() {
                   <div className="w-16 h-16 mx-auto mb-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                     <FileText className="w-8 h-8 text-emerald-400" />
                   </div>
-                  <div className="text-sm font-semibold">Logs</div>
+                  <div className="text-sm font-semibold">{t.landing.logs}</div>
                 </div>
 
                 <ArrowRight className="w-6 h-6 text-emerald-400" />
@@ -498,7 +504,7 @@ export function LandingPage() {
                   <div className="w-16 h-16 mx-auto mb-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                     <Database className="w-8 h-8 text-emerald-400" />
                   </div>
-                  <div className="text-sm font-semibold">Collector</div>
+                  <div className="text-sm font-semibold">{t.landing.collector}</div>
                 </div>
 
                 <ArrowRight className="w-6 h-6 text-emerald-400" />
@@ -507,7 +513,7 @@ export function LandingPage() {
                   <div className="w-16 h-16 mx-auto mb-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                     <Zap className="w-8 h-8 text-emerald-400" />
                   </div>
-                  <div className="text-sm font-semibold">Redis</div>
+                  <div className="text-sm font-semibold">{t.landing.redis}</div>
                 </div>
 
                 <ArrowRight className="w-6 h-6 text-emerald-400" />
@@ -516,7 +522,7 @@ export function LandingPage() {
                   <div className="w-16 h-16 mx-auto mb-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                     <Bot className="w-8 h-8 text-emerald-400" />
                   </div>
-                  <div className="text-sm font-semibold">Worker</div>
+                  <div className="text-sm font-semibold">{t.landing.worker}</div>
                 </div>
 
                 <ArrowRight className="w-6 h-6 text-emerald-400" />
@@ -525,7 +531,7 @@ export function LandingPage() {
                   <div className="w-16 h-16 mx-auto mb-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                     <Shield className="w-8 h-8 text-emerald-400" />
                   </div>
-                  <div className="text-sm font-semibold">Dashboard</div>
+                  <div className="text-sm font-semibold">{t.landing.dashboard}</div>
                 </div>
               </div>
             </div>
@@ -539,27 +545,27 @@ export function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2">
               <Shield className="w-6 h-6 text-emerald-400" />
-              <span className="text-xl font-bold">ShadowGuard</span>
+              <span className="text-xl font-bold">{t.common.shadowGuard}</span>
             </div>
 
             <div className="flex gap-6">
               <a href="https://github.com" className="flex items-center gap-2 text-gray-400 hover:text-emerald-400 transition-colors">
                 <Github className="w-5 h-5" />
-                <span>GitHub Repo</span>
+                <span>{t.landing.githubRepo}</span>
               </a>
               <a href="#" className="flex items-center gap-2 text-gray-400 hover:text-emerald-400 transition-colors">
                 <FileText className="w-5 h-5" />
-                <span>API Docs</span>
+                <span>{t.landing.apiDocs}</span>
               </a>
               <a href="#" className="flex items-center gap-2 text-gray-400 hover:text-emerald-400 transition-colors">
                 <Users className="w-5 h-5" />
-                <span>Team Credits</span>
+                <span>{t.landing.teamCredits}</span>
               </a>
             </div>
           </div>
 
           <div className="mt-8 text-center text-gray-500 text-sm">
-            © 2025 ShadowGuard. Securing the Agentic AI Era.
+            {t.landing.footerCopyright}
           </div>
         </div>
       </footer>
