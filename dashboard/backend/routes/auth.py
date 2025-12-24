@@ -4,7 +4,7 @@ from authlib.integrations.starlette_client import OAuth
 from config import settings
 
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 oauth = OAuth()
 oauth.register(
