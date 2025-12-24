@@ -77,6 +77,12 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SECRET_KEY=${SECRET_KEY:-change_this_secret_key}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - OAUTH_SUCCESS_REDIRECT_URL=${OAUTH_SUCCESS_REDIRECT_URL:-http://localhost:3000/dashboard}
+      - API_BASE_URL=${API_BASE_URL:-http://localhost:8001}
     depends_on:
       redis:
         condition: service_healthy
