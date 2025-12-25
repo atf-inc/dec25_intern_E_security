@@ -22,20 +22,17 @@ oauth.register(
 async def login(request: Request):
     """Initiates the Google OAuth login flow."""
     print(f"Login attempt initiated: {request.client.host}")
-    # Construction of redirect URI
-    if settings.API_BASE_URL:
-        # Construct absolute URL manually to avoid issues with request.url_for behind proxies
-        redirect_uri = settings.API_BASE_URL.rstrip('/') + str(request.url_for('auth'))
-        # If url_for already returned an absolute URL (which it often does), this might double up.
-        # But request.url_for('auth') returns a full URL usually.
-        # Let's be safer:
-        from urllib.parse import urljoin
-        base = settings.API_BASE_URL.rstrip('/') + '/'
-        relative = str(request.url_for('auth')).split(str(request.base_url))[-1]
-        redirect_uri = urljoin(base, relative)
+    
+    # Construct redirect URI for OAuth callback
+    # Use FRONTEND_URL as base (the domain without /api suffix)
+    if settings.FRONTEND_URL:
+        # FRONTEND_URL is the base domain (e.g., https://shadowit-aitf.duckdns.org)
+        # Callback path is /api/auth/callback
+        redirect_uri = settings.FRONTEND_URL.rstrip('/') + '/api/auth/callback'
     else:
         redirect_uri = request.url_for('auth')
         
+    print(f"OAuth redirect_uri: {redirect_uri}")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
