@@ -11,9 +11,11 @@ export const Login = () => {
 
     const initiateGoogleLogin = () => {
         setIsLoading(true);
-        // Use environment variable for backend URL
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
-        window.location.href = `${apiUrl}/auth/login`;
+        // Use relative URL which works with Caddy reverse proxy
+        // In production: /api/* is proxied to backend by Caddy
+        // In development: VITE_API_URL can override if needed
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        window.location.href = `${apiUrl}/api/auth/login`;
     };
 
     return (
